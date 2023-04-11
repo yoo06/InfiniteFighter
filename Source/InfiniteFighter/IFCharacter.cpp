@@ -11,7 +11,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "IFCharacterAnimInstance.h"
+#include "Components/WidgetComponent.h"
 #include "IFAxe.h"
+#include "IFAimWidget.h"
 
 // Sets default values
 AIFCharacter::AIFCharacter()
@@ -79,6 +81,11 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/AimCurve.AimCurve"));
 	if (AIM_CURVE_FLOAT.Succeeded())
 		AimCurveFloat = AIM_CURVE_FLOAT.Object;
+
+	static ConstructorHelpers::FClassFinder<UIFAimWidget>AIM_HUD_C
+	(TEXT("/Game/InFiniteFighter/Characters/Widget/Aim_Hud.Aim_Hud_C"));
+	if (AIM_HUD_C.Succeeded())
+		AimHUDClass = AIM_HUD_C.Class;
 
 	AimTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AIM_TIMELINE"));
 
@@ -157,6 +164,8 @@ void AIFCharacter::BeginPlay()
 		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
 
 	RotateDefault();
+
+	AimHUD = CreateWidget<UIFAimWidget>(GetWorld()->GetFirstPlayerController(), AimHUDClass);
 }
 
 // Called every frame
@@ -303,8 +312,10 @@ void AIFCharacter::AimStart()
 {
 	RotateToCamera();
 	
+
 	if (GetCharacterMovement()->MaxWalkSpeed != 200.0f)
 	{
+		AimHUD->AddToViewport();
 		AnimInstance->SetAimState(true);
 		GetCharacterMovement()->MaxWalkSpeed = 200.0f;
 		AimTimeline->Play();
@@ -316,6 +327,8 @@ void AIFCharacter::AimStart()
 void AIFCharacter::AimEnd()
 {
 	if(GetVelocity().Size() == 0) RotateDefault();
+
+	AimHUD->RemoveFromParent();
 
 	AnimInstance->SetAimState(false);
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
@@ -355,6 +368,7 @@ void AIFCharacter::RotateToCamera()
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 }
 
+// needs the parameters to bind the delegate OnMontageStarted 
 void AIFCharacter::RotateToCameraMontage(UAnimMontage* Montage)
 {
 	if (!AnimInstance->IsDrawOrSheatheMontage())
@@ -367,6 +381,7 @@ void AIFCharacter::RotateDefault()
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 }
 
+// needs the parameters to bind the delegate OnMontageEnded
 void AIFCharacter::RotateDefaultMontage(UAnimMontage* Montage, bool bInterrupted)
 {
 	bUseControllerRotationYaw = false;

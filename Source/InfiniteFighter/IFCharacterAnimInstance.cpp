@@ -251,5 +251,3 @@ const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Secti
 {
 	return FName(*FString::Printf(TEXT("Attack%d"), Section));
 }
-
-

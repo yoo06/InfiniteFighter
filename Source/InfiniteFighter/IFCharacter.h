@@ -81,6 +81,12 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<class AIFAxe> Axe;
 
+	UPROPERTY(VisibleAnywhere, Category = UI)
+	TObjectPtr<class UIFAimWidget> AimHUD;
+
+	UPROPERTY()
+	TSubclassOf<class UIFAimWidget> AimHUDClass;
+
 	UPROPERTY()
 	TObjectPtr<class UIFCharacterAnimInstance> AnimInstance;
 
