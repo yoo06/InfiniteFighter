@@ -2,6 +2,8 @@
 
 
 #include "IFAxe.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "IFCharacterAnimInstance.h"
 
 // Sets default values
 AIFAxe::AIFAxe()
@@ -11,6 +13,8 @@ AIFAxe::AIFAxe()
 
 	Axe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AXE"));
 	RootComponent = Axe;
+
+	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("PROJECTILE_MOVEMENT"));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh>SK_AXE
 	(TEXT("/Game/InFiniteFighter/Weapon/axe_low_scetchfab.axe_low_scetchfab"));
@@ -25,6 +29,8 @@ void AIFAxe::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	ProjectileMovement->Deactivate();
+
 }
 
 // Called every frame
@@ -32,5 +38,13 @@ void AIFAxe::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AIFAxe::Throw()
+{
+	DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+	// ProjectileMovement->MaxSpeed = 4500.0f;
+	// ProjectileMovement->InitialSpeed = 3000.0f;
+	UE_LOG(LogTemp, Warning, TEXT("Throw"));
 }
 

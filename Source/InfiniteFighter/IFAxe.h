@@ -23,7 +23,15 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION()
+	void Throw();
 private:
+
+
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<UStaticMeshComponent> Axe;
+
+	UPROPERTY()
+	TObjectPtr<class UProjectileMovementComponent> ProjectileMovement;
+
 };

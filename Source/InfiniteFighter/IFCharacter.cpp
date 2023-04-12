@@ -213,6 +213,7 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnCharacterStop. BindUObject(this, &AIFCharacter::RotateDefault);
 	AnimInstance->OnMontageStarted.AddDynamic(this,  &AIFCharacter::RotateToCameraMontage);
 	AnimInstance->OnMontageEnded.  AddDynamic(this,  &AIFCharacter::RotateDefaultMontage);
+	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::Throw);
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);

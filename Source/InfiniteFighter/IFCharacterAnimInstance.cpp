@@ -229,6 +229,8 @@ void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 	bIsDrawState     = false;
 	bIsAxeHolding    = false;
 	bCanDoNextAction = true;
+
+	OnThrow.Execute();
 }
 
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)

@@ -8,6 +8,7 @@
 
 DECLARE_DELEGATE(FOnAxeDrawDelegate);
 DECLARE_DELEGATE(FOnAxeSheatheDelegate);
+DECLARE_DELEGATE(FOnAxeThrowDelegate);
 DECLARE_DELEGATE(FOnCharacterMoveDelegate);
 DECLARE_DELEGATE(FOnCharacterStopDelegate);
 
@@ -47,6 +48,8 @@ public:
 	FOnAxeDrawDelegate OnDraw;
 
 	FOnAxeSheatheDelegate OnSheathe;
+
+	FOnAxeThrowDelegate OnThrow;
 
 	FOnCharacterMoveDelegate OnCharacterMove;
 
