@@ -47,6 +47,10 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (WEAPON_WEAK_ATTACK_MONTAGE.Succeeded())
 		WeaponWeakAttackMontage = WEAPON_WEAK_ATTACK_MONTAGE.Object;
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> THROW_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Combat/Throw_Montage.Throw_Montage"));
+	if (THROW_MONTAGE.Succeeded())
+		ThrowMontage = THROW_MONTAGE.Object;
 }
 
 void UIFCharacterAnimInstance::NativeInitializeAnimation()
@@ -76,51 +80,18 @@ void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	}
 }
 
-// get bIsAxeHolding
-const bool UIFCharacterAnimInstance::GetAxeHolding() const
-{
-	return bIsAxeHolding;
-}
-
-
-// set bIsAxeHolding
-void UIFCharacterAnimInstance::SetAxeHolding(const bool& bAxeHolding)
-{
-	bIsAxeHolding = bAxeHolding;
-}
-
-const bool UIFCharacterAnimInstance::GetBlockState() const
-{
-	return bIsBlockState;
-}
-
-void UIFCharacterAnimInstance::SetBlockState(const bool& bInBlockState)
-{
-	bIsBlockState = bInBlockState;
-}
-
-const bool UIFCharacterAnimInstance::GetAimState() const
-{
-	return bIsAimState;
-}
-
-void UIFCharacterAnimInstance::SetAimState(const bool& bAimState)
-{
-	bIsAimState = bAimState;
-}
-
 // play sheathe if equiped, play draw if unequiped
 void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 {
-	if (!GetBlockState())
+	if (!bIsBlockState)
 	{
-		if (GetAxeHolding())
+		if (bIsAxeHolding)
 		{
 
 			if (bCanDoNextAction)
 			{
 				Montage_Play(SheatheMontage);
-				SetAxeHolding(false);
+				bIsAxeHolding = false;
 			}
 		}
 		else
@@ -128,7 +99,7 @@ void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 			if (bCanDoNextAction)
 			{
 				Montage_Play(DrawMontage);
-				SetAxeHolding(true);
+				bIsAxeHolding = true;
 			}
 		}
 	}
@@ -142,10 +113,10 @@ void UIFCharacterAnimInstance::PlayParryingMontage()
 
 void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 {
-	if (bCanDoNextAction)
+	if (bCanDoNextAction && !bIsAimState)
 	{
 		AttackCombo++;
-		if (GetAxeHolding())
+		if (bIsAxeHolding)
 		{
 			if (!bIsAttackPlaying)
 			{
@@ -177,7 +148,7 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 {
 	if (bCanDoNextAction)
 	{
-		if (GetAxeHolding())
+		if (bIsAxeHolding)
 		{
 			// Montage_Play(WeaponStrongAttackMontage);
 		}
@@ -187,6 +158,12 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 		}
 
 	}
+}
+
+void UIFCharacterAnimInstance::PlayThrowMontage()
+{
+	if(bCanDoNextAction && bIsAxeHolding)
+		Montage_Play(ThrowMontage);
 }
 
 bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()
@@ -245,6 +222,13 @@ void UIFCharacterAnimInstance::AnimNotify_RotateCharacter()
 void UIFCharacterAnimInstance::AnimNotify_RotationDefault()
 {
 	OnCharacterStop.Execute();
+}
+
+void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
+{
+	bIsDrawState     = false;
+	bIsAxeHolding    = false;
+	bCanDoNextAction = true;
 }
 
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)

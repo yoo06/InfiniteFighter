@@ -207,12 +207,12 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance = Cast<UIFCharacterAnimInstance>(GetMesh()->GetAnimInstance());
 	
 	// Binding the Delegates
-	AnimInstance->OnDraw.		  BindUObject(this, &AIFCharacter::Draw);
-	AnimInstance->OnSheathe.	  BindUObject(this, &AIFCharacter::Sheathe);
-	AnimInstance->OnCharacterMove.BindUObject(this, &AIFCharacter::RotateToCamera);
-	AnimInstance->OnCharacterStop.BindUObject(this, &AIFCharacter::RotateDefault);
-	AnimInstance->OnMontageStarted.AddDynamic(this, &AIFCharacter::RotateToCameraMontage);
-	AnimInstance->OnMontageEnded.  AddDynamic(this, &AIFCharacter::RotateDefaultMontage);
+	AnimInstance->OnDraw.		   BindUObject(this, &AIFCharacter::Draw);
+	AnimInstance->OnSheathe.	   BindUObject(this, &AIFCharacter::Sheathe);
+	AnimInstance->OnCharacterMove. BindUObject(this, &AIFCharacter::RotateToCamera);
+	AnimInstance->OnCharacterStop. BindUObject(this, &AIFCharacter::RotateDefault);
+	AnimInstance->OnMontageStarted.AddDynamic(this,  &AIFCharacter::RotateToCameraMontage);
+	AnimInstance->OnMontageEnded.  AddDynamic(this,  &AIFCharacter::RotateDefaultMontage);
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -344,6 +344,7 @@ void AIFCharacter::UpdateAimCamera(float NewArmLength)
 void AIFCharacter::Throw()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Throw"));
+	AnimInstance->PlayThrowMontage();
 }
 
 void AIFCharacter::Draw()

@@ -25,21 +25,9 @@ public:
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-	/* Gets bIsAxeHolding */
-	const bool GetAxeHolding() const;
+	FORCEINLINE void SetAimState(const bool& bInAimState) { bIsAimState = bInAimState; };
 
-	/* Sets bIsAxeHolding */
-	void SetAxeHolding(const bool& bAxeHolding);
-
-	/* Gets bIsBlockState */
-	const bool GetBlockState() const;
-
-	/* Sets bIsBlockState */
-	void SetBlockState(const bool& bBlockState);
-
-	const bool GetAimState() const;
-
-	void SetAimState(const bool& bAimState);
+	FORCEINLINE void SetBlockState(const bool& bInBlockState) { bIsBlockState = bInBlockState; };
 
 	/* Plays Draw and Sheathe Montage */
 	void PlayDrawSheatheMontage();
@@ -51,6 +39,8 @@ public:
 	void PlayWeakAttackMontage();
 
 	void PlayStrongAttackMontage();
+
+	void PlayThrowMontage();
 
 	bool IsDrawOrSheatheMontage();
 
@@ -108,6 +98,9 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* WeaponWeakAttackMontage;
 
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ThrowMontage;
+
 	/* Function to play when drawState starts */
 	UFUNCTION()
 	void DrawStateStart(UAnimMontage* Montage);
@@ -141,6 +134,9 @@ private:
 
 	UFUNCTION()
 	void AnimNotify_RotationDefault();
+
+	UFUNCTION()
+	void AnimNotify_ThrowPoint();
 
 	/* returns the Montage Section Attack1~3 */
 	const FName GetAttackMontageSection(const int32& Section);
