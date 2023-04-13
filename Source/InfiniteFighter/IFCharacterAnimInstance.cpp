@@ -206,31 +206,31 @@ void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionTrue()
 
 void UIFCharacterAnimInstance::AnimNotify_SheatheWeapon()
 {
-	OnSheathe.Execute();
+	OnSheathe.ExecuteIfBound();
 }
 
 void UIFCharacterAnimInstance::AnimNotify_DrawWeapon()
 {
-	OnDraw.Execute();
+	OnDraw.ExecuteIfBound();
 }
 
 void UIFCharacterAnimInstance::AnimNotify_RotateCharacter()
 {
-	OnCharacterMove.Execute();
+	OnCharacterMove.ExecuteIfBound();
 }
 
 void UIFCharacterAnimInstance::AnimNotify_RotationDefault()
 {
-	OnCharacterStop.Execute();
+	OnCharacterStop.ExecuteIfBound();
 }
 
 void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 {
-	bIsDrawState     = false;
-	bIsAxeHolding    = false;
+	bIsDrawState = false;
+	bIsAxeHolding = false;
 	bCanDoNextAction = true;
 
-	OnThrow.Execute();
+	OnThrow.ExecuteIfBound();
 }
 
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)

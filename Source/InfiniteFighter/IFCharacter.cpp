@@ -156,13 +156,6 @@ void AIFCharacter::BeginPlay()
 		PlayerCameraManager->ViewPitchMax =  60.0f;
 	}
 
-	// Creating the Axe and Attaching it to Back
-	FName BackSocket(TEXT("Weapon_Back"));
-	
-	Axe = GetWorld()->SpawnActor<AIFAxe>(FVector::ZeroVector, FRotator::ZeroRotator);
-	if (nullptr != Axe)
-		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
-
 	RotateDefault();
 
 	AimHUD = CreateWidget<UIFAimWidget>(GetWorld()->GetFirstPlayerController(), AimHUDClass);
@@ -203,6 +196,13 @@ void AIFCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	// Creating the Axe and Attaching it to Back
+	FName BackSocket(TEXT("Weapon_Back"));
+	Axe = GetWorld()->SpawnActor<AIFAxe>(FVector::ZeroVector, FRotator::ZeroRotator);
+
+	if (nullptr != Axe)
+		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
+
 	// cast IFCharacterAnimInstance to Character's AnimInstance
 	AnimInstance = Cast<UIFCharacterAnimInstance>(GetMesh()->GetAnimInstance());
 	
@@ -211,9 +211,9 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnSheathe.	   BindUObject(this, &AIFCharacter::Sheathe);
 	AnimInstance->OnCharacterMove. BindUObject(this, &AIFCharacter::RotateToCamera);
 	AnimInstance->OnCharacterStop. BindUObject(this, &AIFCharacter::RotateDefault);
-	AnimInstance->OnMontageStarted.AddDynamic(this,  &AIFCharacter::RotateToCameraMontage);
-	AnimInstance->OnMontageEnded.  AddDynamic(this,  &AIFCharacter::RotateDefaultMontage);
-	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::Throw);
+	AnimInstance->OnMontageStarted.AddDynamic (this, &AIFCharacter::RotateToCameraMontage);
+	AnimInstance->OnMontageEnded.  AddDynamic (this, &AIFCharacter::RotateDefaultMontage);
+	AnimInstance->OnThrow.BindUObject(Axe, &AIFAxe::Throw);
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -344,7 +344,6 @@ void AIFCharacter::UpdateAimCamera(float NewArmLength)
 
 void AIFCharacter::Throw()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Throw"));
 	AnimInstance->PlayThrowMontage();
 }
 

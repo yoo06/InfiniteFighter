@@ -25,13 +25,15 @@ public:
 
 	UFUNCTION()
 	void Throw();
+
 private:
-
-
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<UStaticMeshComponent> Axe;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category = Projectile)
 	TObjectPtr<class UProjectileMovementComponent> ProjectileMovement;
+
+	UPROPERTY()
+	TObjectPtr<class USphereComponent> SphereComponent;
 
 };

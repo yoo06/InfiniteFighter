@@ -3,7 +3,7 @@
 
 #include "IFAxe.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "IFCharacterAnimInstance.h"
+#include "Components/SphereComponent.h"
 
 // Sets default values
 AIFAxe::AIFAxe()
@@ -11,10 +11,9 @@ AIFAxe::AIFAxe()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Creating the Axe static Mesh
 	Axe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AXE"));
 	RootComponent = Axe;
-
-	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("PROJECTILE_MOVEMENT"));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh>SK_AXE
 	(TEXT("/Game/InFiniteFighter/Weapon/axe_low_scetchfab.axe_low_scetchfab"));
@@ -22,6 +21,18 @@ AIFAxe::AIFAxe()
 		Axe->SetStaticMesh(SK_AXE.Object);
 
 	Axe->SetCollisionProfileName(TEXT("NoCollision"));
+
+	// Setting the SphereComponent
+	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SPHERE_COMPONENT"));
+	SphereComponent->SetupAttachment(Axe);
+	SphereComponent->InitSphereRadius(22.0f);
+	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 40.0f));
+
+	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("PROJECTILE_MOVEMENT"));
+	ProjectileMovement->MaxSpeed = 4500.0f;
+	ProjectileMovement->InitialSpeed = 3000.0f;
+	ProjectileMovement->UpdatedComponent = Axe;
+
 }
 
 // Called when the game starts or when spawned
@@ -42,9 +53,13 @@ void AIFAxe::Tick(float DeltaTime)
 
 void AIFAxe::Throw()
 {
-	DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
-	// ProjectileMovement->MaxSpeed = 4500.0f;
-	// ProjectileMovement->InitialSpeed = 3000.0f;
-	UE_LOG(LogTemp, Warning, TEXT("Throw"));
-}
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
+	// Get the current forward direction of the Axe
+	FVector Direction = Axe->GetForwardVector();
+	
+	ProjectileMovement->Activate();
+
+	// Set the velocity of the ProjectileMovement component to the direction times the initial speed
+	ProjectileMovement->Velocity = Direction * ProjectileMovement->InitialSpeed;
+}
