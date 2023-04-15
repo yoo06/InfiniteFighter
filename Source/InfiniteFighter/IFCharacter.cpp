@@ -77,6 +77,7 @@ AIFCharacter::AIFCharacter()
 	if (IA_THROW.Succeeded())
 		ThrowAction = IA_THROW.Object;
 
+	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/AimCurve.AimCurve"));
 	if (AIM_CURVE_FLOAT.Succeeded())
@@ -114,9 +115,9 @@ AIFCharacter::AIFCharacter()
 	SpringArm->CameraRotationLagSpeed   = 10.0f;
 	bUseControllerRotationYaw           = false;
 
-	GetCharacterMovement()->MaxWalkSpeed				  = 400.0f;
-	GetCharacterMovement()->BrakingDecelerationWalking    = 50.0f;
-	GetCharacterMovement()->RotationRate				  = FRotator(0.0f, 360.0f, 0.0f);
+	GetCharacterMovement()->MaxWalkSpeed			   = 400.0f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 50.0f;
+	GetCharacterMovement()->RotationRate			   = FRotator(0.0f, 360.0f, 0.0f);
 
 	// setting the mesh and animation
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh>SKM_MESH
@@ -219,6 +220,11 @@ void AIFCharacter::PostInitializeComponents()
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 }
 
+UCameraComponent* AIFCharacter::GetCamera()
+{
+	return Camera;
+}
+
 void AIFCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -233,7 +239,7 @@ void AIFCharacter::Move(const FInputActionValue& Value)
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
 		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		const FVector RightDirection   = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
 		// scale movement input based on desired speed
 		const FVector ScaledMovementInput = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X).GetSafeNormal();
@@ -241,7 +247,7 @@ void AIFCharacter::Move(const FInputActionValue& Value)
 		// add movement checking the type of input
 		ECommonInputType CurrentInputType = InputSubsystem->GetCurrentInputType();
 
-		if      (CurrentInputType == ECommonInputType::MouseAndKeyboard) 
+		if (CurrentInputType == ECommonInputType::MouseAndKeyboard) 
 			AddMovementInput(ScaledMovementInput);
 		else if (CurrentInputType == ECommonInputType::Gamepad)
 			AddMovementInput(ScaledMovementInput, ((MovementVector.Size() / 50) < 0.7f) ? 0.4f : 1.0f);

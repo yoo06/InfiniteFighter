@@ -30,6 +30,8 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
+	FORCEINLINE class UCameraComponent* AIFCharacter::GetCamera();
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/TimelineComponent.h"
 #include "IFAxe.generated.h"
 
 UCLASS()
@@ -15,25 +16,57 @@ public:
 	// Sets default values for this actor's properties
 	AIFAxe();
 
-protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void PostInitializeComponents() override;
 
+public:	
 	UFUNCTION()
 	void Throw();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	TObjectPtr<USceneComponent> Root;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	TObjectPtr<USceneComponent> Pivot;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	TObjectPtr<USceneComponent> Lodge;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<UStaticMeshComponent> Axe;
 
-	UPROPERTY(VisibleAnywhere, Category = Projectile)
+	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<class UProjectileMovementComponent> ProjectileMovement;
 
 	UPROPERTY()
-	TObjectPtr<class USphereComponent> SphereComponent;
+	TObjectPtr<class AIFCharacter> Character;
 
+	FRotator CameraRotation;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> AxeGravityTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> AxeGravityCurveFloat;
+
+	FOnTimelineFloat OnGravityTimelineFunction;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> AxeRotateTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> AxeRotateCurveFloat;
+
+	FOnTimelineFloat OnRotateTimelineFunction;
+
+	UFUNCTION()
+	void UpdateAxeGravity(float InGravity);
+
+	UFUNCTION()
+	void UpdateRotateGravity(float InRotate);
+
+	void LodgePosition(const FHitResult& InHit);
 };
