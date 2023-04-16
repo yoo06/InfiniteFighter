@@ -86,7 +86,10 @@ AIFAxe::AIFAxe()
 	if (RIGHT_VECTOR_CURVE.Succeeded())
 		RightVectorCurveFloat = RIGHT_VECTOR_CURVE.Object;
 
-	ReturnTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TIMELINE"));
+	ReturnTiltStartTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TILT_START_TIMELINE"));
+	ReturnTiltEndTimeline   = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TILT_END_TIMELINE"));
+	ReturnSpeedTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_SPEED_TIMELINE"));
+	RightVectorTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RIGHT_VECTOR_TIMELINE"));
 
 	CameraRotation			  = FRotator::ZeroRotator;
 	DistanceFromCharacter	  = 0;
@@ -96,6 +99,7 @@ AIFAxe::AIFAxe()
 	ReturnStartRotation		  = FRotator::ZeroRotator;
 	ReturnStartCameraRotation = FRotator::ZeroRotator;
 	TiltingRotation			  = FRotator::ZeroRotator;
+	SpinCount				  = -1;
 }
 
 // Called when the game starts or when spawned
@@ -121,23 +125,26 @@ void AIFAxe::PostInitializeComponents()
 	OnRotateTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRotateGravity);
 	AxeRotateTimeline->AddInterpFloat(AxeRotateCurveFloat, OnRotateTimelineFunction);
 
+	OnRotateTimelineFinished.BindDynamic(this, &AIFAxe::SpinStop);
+	AxeRotateTimeline->SetTimelineFinishedFunc(OnRotateTimelineFinished);
+
 	OnWiggleTimelineFunction.BindDynamic(this, &AIFAxe::UpdateWiggle);
 	WiggleTimeline->AddInterpFloat(WiggleCurveFloat, OnWiggleTimelineFunction);
 
 	OnWiggleTimelineFinished.BindDynamic(this, &AIFAxe::RecallMovement);
 	WiggleTimeline->SetTimelineFinishedFunc(OnWiggleTimelineFinished);
 
-	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltEnd);
-	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltStart);
-	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateReturnLocation);
-	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRightVector);
-	ReturnTimeline->AddInterpFloat(ReturnSpeedCurveFloat, OnReturnTimelineFunction);
-	ReturnTimeline->AddInterpFloat(ReturnTiltEndCurveFloat, OnReturnTimelineFunction);
-	ReturnTimeline->AddInterpFloat(ReturnTiltStartCurveFloat, OnReturnTimelineFunction);
-	ReturnTimeline->AddInterpFloat(RightVectorCurveFloat, OnReturnTimelineFunction);
+	OnRightVectorTimelineFunction.    BindDynamic(this, &AIFAxe::UpdateRightVector);
+	OnReturnSpeedTimelineFunction.    BindDynamic(this, &AIFAxe::UpdateReturnLocation);
+	OnReturnTiltStartTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltStart);
+	OnReturnTiltEndTimelineFunction.  BindDynamic(this, &AIFAxe::UpdateTiltEnd);
+	RightVectorTimeline	   ->AddInterpFloat(RightVectorCurveFloat,     OnRightVectorTimelineFunction);
+	ReturnSpeedTimeline    ->AddInterpFloat(ReturnSpeedCurveFloat,     OnReturnSpeedTimelineFunction);
+	ReturnTiltEndTimeline  ->AddInterpFloat(ReturnTiltStartCurveFloat, OnReturnTiltStartTimelineFunction);
+	ReturnTiltStartTimeline->AddInterpFloat(ReturnTiltEndCurveFloat,   OnReturnTiltEndTimelineFunction);
 
 	OnReturnTimelineFinished.BindDynamic(this, &AIFAxe::CatchAxe);
-	ReturnTimeline->SetTimelineFinishedFunc(OnReturnTimelineFinished);
+	ReturnTiltEndTimeline->SetTimelineFinishedFunc(OnReturnTimelineFinished);
 }
 
 void AIFAxe::Throw()
@@ -160,27 +167,33 @@ void AIFAxe::Throw()
 	// Set the velocity of the ProjectileMovement component
 	ProjectileMovement->Velocity = Direction * ProjectileMovement->InitialSpeed;
 
-	AxeRotateTimeline->Play();
-	AxeRotateTimeline->SetLooping(true);
+	AxeRotateTimeline->PlayFromStart();
 	AxeRotateTimeline->SetPlayRate(2.5f);
 }
 
 void AIFAxe::Recall()
 {
-	switch (GetAxeState())
-	{
-	case EAxeState::Lodged:
-		{
-		WiggleTimeline->PlayFromStart();
-		WiggleTimeline->SetPlayRate(2.5f);
-		break;
-		}
-	case EAxeState::Flying:
+    switch (GetAxeState())
+    {
+    case EAxeState::Lodged:
+    {
+        WiggleTimeline->PlayFromStart();
+        WiggleTimeline->SetPlayRate(2.5f);
+        break;
+    }
+    case EAxeState::Flying:
+    {
+        
+        ProjectileMovement->Deactivate();
+        AxeGravityTimeline->Stop();
+        AxeRotateTimeline ->Stop();
+		Pivot->SetRelativeRotation(FRotator::ZeroRotator);
 		RecallMovement();
-		break;
-	default:
-		return;
-	}
+        break;
+    }
+    default:
+        return;
+    }
 }
 
 void AIFAxe::UpdateAxeGravity(float InGravity)
@@ -251,15 +264,26 @@ void AIFAxe::RecallMovement()
 {
 	SetAxeState(EAxeState::Returning);
 
-	DistanceFromCharacter = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
-	float TimelinePlayRate = FMath::Clamp(1400 / DistanceFromCharacter, 0.4f, 0.7f);
-	ReturnStartLocation = GetActorLocation();
-	ReturnStartRotation = GetActorRotation();
+	DistanceFromCharacter	  = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
+	float TimelinePlayRate	  = FMath::Clamp(1400 / DistanceFromCharacter, 0.4f, 0.7f);
+	ReturnStartLocation		  = GetActorLocation();
+	ReturnStartRotation		  = GetActorRotation();
 	ReturnStartCameraRotation = Character->GetCamera()->GetComponentRotation();
 	Lodge->SetRelativeRotation(FRotator::ZeroRotator);
 
-	ReturnTimeline->PlayFromStart();
-	ReturnTimeline->SetPlayRate(TimelinePlayRate);
+	RightVectorTimeline->PlayFromStart();
+	RightVectorTimeline->SetPlayRate(TimelinePlayRate);
+
+	ReturnSpeedTimeline->PlayFromStart();
+	ReturnSpeedTimeline->SetPlayRate(TimelinePlayRate);
+
+	ReturnTiltStartTimeline->PlayFromStart();
+	ReturnTiltStartTimeline->SetPlayRate(TimelinePlayRate);
+
+	ReturnTiltEndTimeline->PlayFromStart();
+	ReturnTiltEndTimeline->SetPlayRate(TimelinePlayRate);
+
+	CalculateSpin(TimelinePlayRate);
 }
 
 void AIFAxe::UpdateRightVector(float InVector)
@@ -270,7 +294,6 @@ void AIFAxe::UpdateRightVector(float InVector)
 void AIFAxe::UpdateReturnLocation(float InSpeed)
 {
 	ReturnLocation = FMath::Lerp(ReturnStartLocation, ReturnRightVector, InSpeed);
-	UE_LOG(LogTemp, Warning, TEXT("ReturnLocation : %s"), *ReturnLocation.ToString());
 	SetActorLocation(ReturnLocation);
 }
 
@@ -290,4 +313,37 @@ void AIFAxe::CatchAxe()
 {
 	SetAxeState(EAxeState::Idle);
 	OnAxeCatch.ExecuteIfBound();
+}
+
+void AIFAxe::CalculateSpin(float InTimelinePlayRate)
+{
+	float AdjustRate = 1 / InTimelinePlayRate;
+	SpinCount		 = FMath::RoundToInt(AdjustRate / 0.35);
+	float SpinRate   = 1 / (AdjustRate / SpinCount);
+
+	AxeRotateTimeline->SetPlayRate(SpinRate);
+	AxeRotateTimeline->ReverseFromEnd();
+}
+
+void AIFAxe::SpinStop()
+{
+	if (SpinCount == 1)
+	{
+		AxeRotateTimeline->Stop();
+		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
+		SpinCount = 0;
+	}
+	else if (SpinCount <= 0)
+	{
+		AxeRotateTimeline->PlayFromStart();
+		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
+		SpinCount--;
+	}
+	else
+	{
+		AxeRotateTimeline->ReverseFromEnd();
+		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
+		SpinCount--;
+
+	}
 }

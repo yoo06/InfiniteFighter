@@ -84,6 +84,8 @@ private:
 
 	FOnTimelineFloat OnRotateTimelineFunction;
 
+	FOnTimelineEvent OnRotateTimelineFinished;
+
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UTimelineComponent> WiggleTimeline;
 
@@ -96,7 +98,16 @@ private:
 
 	// Timeline for Axe return
 	UPROPERTY(VisibleAnywhere, Category = Movement)
-	TObjectPtr<UTimelineComponent> ReturnTimeline;
+	TObjectPtr<UTimelineComponent> ReturnTiltStartTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> ReturnTiltEndTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> ReturnSpeedTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> RightVectorTimeline;
 
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UCurveFloat> ReturnTiltStartCurveFloat;
@@ -110,7 +121,13 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UCurveFloat> ReturnTiltEndCurveFloat;
 
-	FOnTimelineFloat OnReturnTimelineFunction;
+	FOnTimelineFloat OnReturnTiltStartTimelineFunction;
+
+	FOnTimelineFloat OnReturnTiltEndTimelineFunction;
+
+	FOnTimelineFloat OnReturnSpeedTimelineFunction;
+
+	FOnTimelineFloat OnRightVectorTimelineFunction;
 
 	FOnTimelineEvent OnReturnTimelineFinished;
 
@@ -147,6 +164,11 @@ private:
 	UFUNCTION()
 	void CatchAxe();
 
+	void CalculateSpin(float InTimelinePlayRate);
+
+	UFUNCTION()
+	void SpinStop();
+
 	FVector  ReturnRightVector;
 	FVector  ReturnLocation;
 	FVector  ReturnStartLocation;
@@ -154,4 +176,5 @@ private:
 	FRotator ReturnStartCameraRotation;
 	FRotator TiltingRotation;
 	float	 DistanceFromCharacter;
+	int      SpinCount;
 };

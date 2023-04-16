@@ -30,6 +30,13 @@ public:
 
 	FORCEINLINE void SetBlockState(const bool& bInBlockState) { bIsBlockState = bInBlockState; };
 
+	FORCEINLINE void SetAxeHolding(const bool& bInAxe) { bIsAxeHolding = bInAxe; };
+
+	FORCEINLINE void SetDrawState(const bool& bInDrawState) { bIsDrawState = bInDrawState; };
+
+	FORCEINLINE void SetCanDoNextAction(const bool& bInNextAction) { bCanDoNextAction = bInNextAction; };
+
+
 	FORCEINLINE const bool GetRecall() const { return bIsRecalling; };
 
 	FORCEINLINE void SetRecall(const bool& bInRecall) { bIsRecalling = bInRecall; };

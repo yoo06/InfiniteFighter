@@ -221,7 +221,7 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnMontageStarted.AddDynamic (this, &AIFCharacter::RotateToCameraMontage);
 	AnimInstance->OnMontageEnded.  AddDynamic (this, &AIFCharacter::RotateDefaultMontage);
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::Throw);
-	Axe->OnAxeCatch.			   BindUObject(this, &AIFCharacter::CatchAxe);
+	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -409,17 +409,20 @@ void AIFCharacter::RotateDefaultMontage(UAnimMontage* Montage, bool bInterrupted
 
 void AIFCharacter::RecallAxe()
 {
-	if (!AnimInstance->GetRecall())
+	if (!AnimInstance->GetRecall() && (Axe->GetAxeState() == EAxeState::Flying || Axe->GetAxeState() == EAxeState::Lodged))
 	{
 		AnimInstance->SetRecall(true);
+		AnimInstance->SetCanDoNextAction(false);
 		Axe->Recall();
 	}
 }
 
 void AIFCharacter::CatchAxe()
 {
-	AnimInstance->SetRecall(false);
-
-	FName WeaponSocket(TEXT("Weapon_R"));
-	Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+		AnimInstance->SetRecall(false);
+		AnimInstance->SetAxeHolding(true);
+		AnimInstance->SetDrawState(true);
+		AnimInstance->SetCanDoNextAction(true);
+		FName WeaponSocket(TEXT("Weapon_R"));
+		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 }
