@@ -7,6 +7,8 @@
 #include "Components/TimelineComponent.h"
 #include "IFAxe.generated.h"
 
+DECLARE_DELEGATE(FOnAxeCatch);
+
 UENUM()
 enum class EAxeState
 {
@@ -39,6 +41,8 @@ public:
 
 	FORCEINLINE const EAxeState GetAxeState() const { return CurrentAxeState; }
 	FORCEINLINE void SetAxeState(EAxeState InAxeState) { CurrentAxeState = InAxeState; }
+
+	FOnAxeCatch OnAxeCatch;
 private:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<USceneComponent> Root;
@@ -90,6 +94,27 @@ private:
 
 	FOnTimelineEvent OnWiggleTimelineFinished;
 
+	// Timeline for Axe return
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> ReturnTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> ReturnTiltStartCurveFloat;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> ReturnSpeedCurveFloat;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> RightVectorCurveFloat;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> ReturnTiltEndCurveFloat;
+
+	FOnTimelineFloat OnReturnTimelineFunction;
+
+	FOnTimelineEvent OnReturnTimelineFinished;
+
+
 	/* Function for Updating Axe Projectile Gravity */
 	UFUNCTION()
 	void UpdateAxeGravity(float InGravity);
@@ -106,4 +131,27 @@ private:
 
 	UFUNCTION()
 	void RecallMovement();
+
+	UFUNCTION()
+	void UpdateRightVector(float InVector);
+
+	UFUNCTION()
+	void UpdateReturnLocation(float InSpeed);
+
+	UFUNCTION()
+	void UpdateTiltStart(float InValue);
+
+	UFUNCTION()
+	void UpdateTiltEnd(float InValue);
+
+	UFUNCTION()
+	void CatchAxe();
+
+	FVector  ReturnRightVector;
+	FVector  ReturnLocation;
+	FVector  ReturnStartLocation;
+	FRotator ReturnStartRotation;
+	FRotator ReturnStartCameraRotation;
+	FRotator TiltingRotation;
+	float	 DistanceFromCharacter;
 };

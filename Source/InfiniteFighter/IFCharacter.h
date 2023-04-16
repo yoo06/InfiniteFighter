@@ -157,4 +157,7 @@ private:
 	void RotateDefaultMontage(UAnimMontage* Montage, bool bInterrupted);
 
 	void RecallAxe();
+
+	UFUNCTION()
+	void CatchAxe();
 };

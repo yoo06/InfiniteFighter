@@ -56,6 +56,7 @@ AIFAxe::AIFAxe()
 		AxeRotateCurveFloat = AXE_ROTATE_CURVE.Object;
 
 	AxeRotateTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AXE_ROTATE_TIMELINE"));
+	AxeGravityTimeline->SetTimelineLength(1.0f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>WIGGLE_CURVE
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/WiggleCurve.WiggleCurve"));
@@ -65,7 +66,36 @@ AIFAxe::AIFAxe()
 	WiggleTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("WIGGLE_TIMELINE"));
 	WiggleTimeline->SetTimelineLength(0.8f);
 
-	CameraRotation = FRotator::ZeroRotator;
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_SPEED_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnSpeedCurve.ReturnSpeedCurve"));
+	if (RETURN_SPEED_CURVE.Succeeded())
+		ReturnSpeedCurveFloat = RETURN_SPEED_CURVE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_TILT_START_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnTiltStartCurve.ReturnTiltStartCurve"));
+	if (RETURN_TILT_START_CURVE.Succeeded())
+		ReturnTiltStartCurveFloat = RETURN_TILT_START_CURVE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_TILT_END_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnTiltEndCurve.ReturnTiltEndCurve"));
+	if (RETURN_TILT_END_CURVE.Succeeded())
+		ReturnTiltEndCurveFloat = RETURN_TILT_END_CURVE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>RIGHT_VECTOR_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/RightVectorCurve.RightVectorCurve"));
+	if (RIGHT_VECTOR_CURVE.Succeeded())
+		RightVectorCurveFloat = RIGHT_VECTOR_CURVE.Object;
+
+	ReturnTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TIMELINE"));
+
+	CameraRotation			  = FRotator::ZeroRotator;
+	DistanceFromCharacter	  = 0;
+	ReturnRightVector		  = FVector::ZeroVector;
+	ReturnLocation			  = FVector::ZeroVector;
+	ReturnStartLocation		  = FVector::ZeroVector;
+	ReturnStartRotation		  = FRotator::ZeroRotator;
+	ReturnStartCameraRotation = FRotator::ZeroRotator;
+	TiltingRotation			  = FRotator::ZeroRotator;
 }
 
 // Called when the game starts or when spawned
@@ -74,7 +104,6 @@ void AIFAxe::BeginPlay()
 	Super::BeginPlay();
 	
 	ProjectileMovement->Deactivate();
-	//RotateMovement->Deactivate();
 
 	Character = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
@@ -97,6 +126,18 @@ void AIFAxe::PostInitializeComponents()
 
 	OnWiggleTimelineFinished.BindDynamic(this, &AIFAxe::RecallMovement);
 	WiggleTimeline->SetTimelineFinishedFunc(OnWiggleTimelineFinished);
+
+	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltEnd);
+	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltStart);
+	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateReturnLocation);
+	OnReturnTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRightVector);
+	ReturnTimeline->AddInterpFloat(ReturnSpeedCurveFloat, OnReturnTimelineFunction);
+	ReturnTimeline->AddInterpFloat(ReturnTiltEndCurveFloat, OnReturnTimelineFunction);
+	ReturnTimeline->AddInterpFloat(ReturnTiltStartCurveFloat, OnReturnTimelineFunction);
+	ReturnTimeline->AddInterpFloat(RightVectorCurveFloat, OnReturnTimelineFunction);
+
+	OnReturnTimelineFinished.BindDynamic(this, &AIFAxe::CatchAxe);
+	ReturnTimeline->SetTimelineFinishedFunc(OnReturnTimelineFinished);
 }
 
 void AIFAxe::Throw()
@@ -169,20 +210,26 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 {
 	SetAxeState(EAxeState::Lodged);
 
+	// Stopping the movement
 	ProjectileMovement->Deactivate();
 	AxeGravityTimeline->Stop();
 	AxeRotateTimeline ->Stop();
+
+	//resetting the rotation
 	Pivot->SetRelativeRotation(FRotator::ZeroRotator);
 	SetActorRotation(CameraRotation);
 
 	float AdjustRoll		  = FMath::FRandRange( -3.0f,  -8.0f);
 	float InclineSurfaceRange = FMath::FRandRange(-30.0f, -55.0f);
 	float RegularSurfaceRange = FMath::FRandRange( -5.0f, -25.0f);
+
+	// setting the rotation by using ImpactNormal position
 	FMatrix RotateMatrix(InHit.ImpactNormal.GetSafeNormal(), FVector::ZeroVector, FVector::ZeroVector, FVector::ZeroVector);
 	float MatrixPitch = RotateMatrix.Rotator().Pitch;
 
 	float AdjustPitch = MatrixPitch > 0 ? InclineSurfaceRange - MatrixPitch : RegularSurfaceRange - MatrixPitch;
 
+	// setting the rotation of lodge
 	Lodge->SetRelativeRotation(FRotator(AdjustPitch, 0.0f, AdjustRoll));
 
 	float AdjustZ = MatrixPitch > 0 ? (90 - MatrixPitch) / 9 : 10;
@@ -199,9 +246,48 @@ void AIFAxe::UpdateWiggle(float InWigglePosition)
 	Lodge->SetRelativeRotation(FRotator(Lodge->GetRelativeRotation().Pitch, Lodge->GetRelativeRotation().Yaw, WiggleRoll));
 }
 
+
 void AIFAxe::RecallMovement()
 {
-	UE_LOG(LogTemp, Warning, TEXT("MovementStart"));
 	SetAxeState(EAxeState::Returning);
 
+	DistanceFromCharacter = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
+	float TimelinePlayRate = FMath::Clamp(1400 / DistanceFromCharacter, 0.4f, 0.7f);
+	ReturnStartLocation = GetActorLocation();
+	ReturnStartRotation = GetActorRotation();
+	ReturnStartCameraRotation = Character->GetCamera()->GetComponentRotation();
+	Lodge->SetRelativeRotation(FRotator::ZeroRotator);
+
+	ReturnTimeline->PlayFromStart();
+	ReturnTimeline->SetPlayRate(TimelinePlayRate);
+}
+
+void AIFAxe::UpdateRightVector(float InVector)
+{
+	ReturnRightVector = ((DistanceFromCharacter * InVector) * Character->GetCamera()->GetRightVector()) + Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"));
+}
+
+void AIFAxe::UpdateReturnLocation(float InSpeed)
+{
+	ReturnLocation = FMath::Lerp(ReturnStartLocation, ReturnRightVector, InSpeed);
+	UE_LOG(LogTemp, Warning, TEXT("ReturnLocation : %s"), *ReturnLocation.ToString());
+	SetActorLocation(ReturnLocation);
+}
+
+void AIFAxe::UpdateTiltStart(float InValue)
+{
+	FRotator TiltRotation = FRotator(ReturnStartCameraRotation.Pitch, ReturnStartCameraRotation.Yaw, ReturnStartCameraRotation.Roll + 60.0f);
+	TiltingRotation = FMath::Lerp(ReturnStartRotation, TiltRotation, InValue);
+}
+
+void AIFAxe::UpdateTiltEnd(float InValue)
+{
+	FRotator TargetRotation = FMath::Lerp(TiltingRotation, Character->GetMesh()->GetSocketRotation(TEXT("Weapon_R")), InValue);
+	SetActorRotation(TargetRotation);
+}
+
+void AIFAxe::CatchAxe()
+{
+	SetAxeState(EAxeState::Idle);
+	OnAxeCatch.ExecuteIfBound();
 }

@@ -220,7 +220,8 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnCharacterStop. BindUObject(this, &AIFCharacter::RotateDefault);
 	AnimInstance->OnMontageStarted.AddDynamic (this, &AIFCharacter::RotateToCameraMontage);
 	AnimInstance->OnMontageEnded.  AddDynamic (this, &AIFCharacter::RotateDefaultMontage);
-	AnimInstance->OnThrow.BindUObject(Axe, &AIFAxe::Throw);
+	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::Throw);
+	Axe->OnAxeCatch.			   BindUObject(this, &AIFCharacter::CatchAxe);
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -413,4 +414,12 @@ void AIFCharacter::RecallAxe()
 		AnimInstance->SetRecall(true);
 		Axe->Recall();
 	}
+}
+
+void AIFCharacter::CatchAxe()
+{
+	AnimInstance->SetRecall(false);
+
+	FName WeaponSocket(TEXT("Weapon_R"));
+	Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 }
