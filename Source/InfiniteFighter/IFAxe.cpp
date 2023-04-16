@@ -28,7 +28,7 @@ AIFAxe::AIFAxe()
 	// Creating the Axe static Mesh
 	Axe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AXE"));
 	Axe->SetupAttachment(Lodge);
-	Axe->SetRelativeLocation(FVector(-12.0f, 0.0f, -35.0f));
+	Axe->SetRelativeLocation(FVector(-12.0f, 0.0f, -30.0f));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh>SK_AXE
 	(TEXT("/Game/InFiniteFighter/Weapon/axe_low_scetchfab.axe_low_scetchfab"));
@@ -48,6 +48,7 @@ AIFAxe::AIFAxe()
 		AxeGravityCurveFloat = AXE_GRAVITY_CURVE.Object;
 
 	AxeGravityTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AXE_GRAVITY_TIMELINE"));
+	AxeGravityTimeline->SetTimelineLength(1.2f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AXE_ROTATE_CURVE
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/AxeRotateCurve.AxeRotateCurve"));
@@ -55,6 +56,14 @@ AIFAxe::AIFAxe()
 		AxeRotateCurveFloat = AXE_ROTATE_CURVE.Object;
 
 	AxeRotateTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AXE_ROTATE_TIMELINE"));
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>WIGGLE_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/WiggleCurve.WiggleCurve"));
+	if (WIGGLE_CURVE.Succeeded())
+		WiggleCurveFloat = WIGGLE_CURVE.Object;
+
+	WiggleTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("WIGGLE_TIMELINE"));
+	WiggleTimeline->SetTimelineLength(0.8f);
 
 	CameraRotation = FRotator::ZeroRotator;
 }
@@ -68,6 +77,8 @@ void AIFAxe::BeginPlay()
 	//RotateMovement->Deactivate();
 
 	Character = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
+	SetAxeState(EAxeState::Idle);
 }
 
 void AIFAxe::PostInitializeComponents()
@@ -80,10 +91,18 @@ void AIFAxe::PostInitializeComponents()
 
 	OnRotateTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRotateGravity);
 	AxeRotateTimeline->AddInterpFloat(AxeRotateCurveFloat, OnRotateTimelineFunction);
+
+	OnWiggleTimelineFunction.BindDynamic(this, &AIFAxe::UpdateWiggle);
+	WiggleTimeline->AddInterpFloat(WiggleCurveFloat, OnWiggleTimelineFunction);
+
+	OnWiggleTimelineFinished.BindDynamic(this, &AIFAxe::RecallMovement);
+	WiggleTimeline->SetTimelineFinishedFunc(OnWiggleTimelineFinished);
 }
 
 void AIFAxe::Throw()
 {
+	SetAxeState(EAxeState::Flying);
+
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	// Get the current forward direction of the Axe
@@ -105,6 +124,24 @@ void AIFAxe::Throw()
 	AxeRotateTimeline->SetPlayRate(2.5f);
 }
 
+void AIFAxe::Recall()
+{
+	switch (GetAxeState())
+	{
+	case EAxeState::Lodged:
+		{
+		WiggleTimeline->PlayFromStart();
+		WiggleTimeline->SetPlayRate(2.5f);
+		break;
+		}
+	case EAxeState::Flying:
+		RecallMovement();
+		break;
+	default:
+		return;
+	}
+}
+
 void AIFAxe::UpdateAxeGravity(float InGravity)
 {
 	ProjectileMovement->ProjectileGravityScale = InGravity;
@@ -117,15 +154,10 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
 		(GetVelocity().GetSafeNormal()) * 50.0f + GetActorLocation(),
 		ECollisionChannel::ECC_Visibility
 	);
-
     if (bResult)
     {
 		LodgePosition(OutHit);
     }
-#if ENABLE_DRAW_DEBUG
-    DrawDebugLine(GetWorld(), GetActorLocation(), (GetVelocity().GetSafeNormal()) * 60.0f + GetActorLocation(), FColor::Red, false, 0, 1.0f, 5.0f);
-#endif
-
 }
 
 void AIFAxe::UpdateRotateGravity(float InRotate)
@@ -135,9 +167,11 @@ void AIFAxe::UpdateRotateGravity(float InRotate)
 
 void AIFAxe::LodgePosition(const FHitResult& InHit)
 {
+	SetAxeState(EAxeState::Lodged);
+
 	ProjectileMovement->Deactivate();
 	AxeGravityTimeline->Stop();
-	AxeRotateTimeline->Stop();
+	AxeRotateTimeline ->Stop();
 	Pivot->SetRelativeRotation(FRotator::ZeroRotator);
 	SetActorRotation(CameraRotation);
 
@@ -156,4 +190,18 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 	FVector AdjustLocation = InHit.ImpactPoint + FVector(0.0f, 0.0f, AdjustZ) + (GetActorLocation() - Lodge->GetComponentLocation());
 
 	SetActorLocation(AdjustLocation);
+}
+
+void AIFAxe::UpdateWiggle(float InWigglePosition)
+{
+	float WiggleRoll = Lodge->GetRelativeRotation().Roll + (InWigglePosition * 12.0f);
+
+	Lodge->SetRelativeRotation(FRotator(Lodge->GetRelativeRotation().Pitch, Lodge->GetRelativeRotation().Yaw, WiggleRoll));
+}
+
+void AIFAxe::RecallMovement()
+{
+	UE_LOG(LogTemp, Warning, TEXT("MovementStart"));
+	SetAxeState(EAxeState::Returning);
+
 }

@@ -66,6 +66,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> ThrowAction;
 
+	UPROPERTY(VisibleAnywhere, Category = Input)
+	TObjectPtr<class UInputAction> RecallAction;
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class UCameraComponent> Camera;
 
@@ -153,4 +156,5 @@ private:
 	UFUNCTION()
 	void RotateDefaultMontage(UAnimMontage* Montage, bool bInterrupted);
 
+	void RecallAxe();
 };

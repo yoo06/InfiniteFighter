@@ -77,6 +77,11 @@ AIFCharacter::AIFCharacter()
 	if (IA_THROW.Succeeded())
 		ThrowAction = IA_THROW.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction>IA_RECALL
+	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Recall.IA_Recall"));
+	if (IA_RECALL.Succeeded())
+		RecallAction = IA_RECALL.Object;
+
 	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/AimCurve.AimCurve"));
@@ -189,6 +194,7 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(AimAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::AimStart);
 		EnhancedInputComponent->BindAction(AimAction,		   ETriggerEvent::Completed, this, &AIFCharacter::AimEnd);
 		EnhancedInputComponent->BindAction(ThrowAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Throw);
+		EnhancedInputComponent->BindAction(RecallAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::RecallAxe);
 	}
 
 }
@@ -282,7 +288,8 @@ void AIFCharacter::SprintEnd()
 
 void AIFCharacter::DrawSheathe()
 {
-	AnimInstance->PlayDrawSheatheMontage();
+	if(Axe->GetAxeState() == EAxeState::Idle)
+		AnimInstance->PlayDrawSheatheMontage();
 }
 
 void AIFCharacter::Parrying()
@@ -396,5 +403,14 @@ void AIFCharacter::RotateDefaultMontage(UAnimMontage* Montage, bool bInterrupted
 	{
 		GetCharacterMovement()->bOrientRotationToMovement     = true;
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	}
+}
+
+void AIFCharacter::RecallAxe()
+{
+	if (!AnimInstance->GetRecall())
+	{
+		AnimInstance->SetRecall(true);
+		Axe->Recall();
 	}
 }

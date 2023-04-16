@@ -14,6 +14,7 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	bIsDrawState       = false;
 	bIsAttackPlaying   = false;
 	bIsAimState		   = false;
+	bIsRecalling	   = false;
 	AttackCombo		   = 0;
 
 	// setting montages
@@ -83,7 +84,7 @@ void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 // play sheathe if equiped, play draw if unequiped
 void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 {
-	if (!bIsBlockState)
+	if (!bIsBlockState && !bIsAimState)
 	{
 		if (bIsAxeHolding)
 		{

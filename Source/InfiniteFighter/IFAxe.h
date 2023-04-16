@@ -7,6 +7,15 @@
 #include "Components/TimelineComponent.h"
 #include "IFAxe.generated.h"
 
+UENUM()
+enum class EAxeState
+{
+	Idle,
+	Flying,
+	Lodged,
+	Returning,
+};
+
 UCLASS()
 class INFINITEFIGHTER_API AIFAxe : public AActor
 {
@@ -25,6 +34,11 @@ public:
 	UFUNCTION()
 	void Throw();
 
+	UFUNCTION()
+	void Recall();
+
+	FORCEINLINE const EAxeState GetAxeState() const { return CurrentAxeState; }
+	FORCEINLINE void SetAxeState(EAxeState InAxeState) { CurrentAxeState = InAxeState; }
 private:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<USceneComponent> Root;
@@ -46,6 +60,9 @@ private:
 
 	FRotator CameraRotation;
 
+	EAxeState CurrentAxeState;
+
+	/* Timeline for AxeGravity when thrown */ 
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UTimelineComponent> AxeGravityTimeline;
 
@@ -54,6 +71,7 @@ private:
 
 	FOnTimelineFloat OnGravityTimelineFunction;
 
+	/* Timeline for AxeGravity when thrown*/ 
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UTimelineComponent> AxeRotateTimeline;
 
@@ -62,11 +80,30 @@ private:
 
 	FOnTimelineFloat OnRotateTimelineFunction;
 
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UTimelineComponent> WiggleTimeline;
+
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<UCurveFloat> WiggleCurveFloat;
+
+	FOnTimelineFloat OnWiggleTimelineFunction;
+
+	FOnTimelineEvent OnWiggleTimelineFinished;
+
+	/* Function for Updating Axe Projectile Gravity */
 	UFUNCTION()
 	void UpdateAxeGravity(float InGravity);
 
+	/* Function for Updating Axe Rotation when thrown */
 	UFUNCTION()
 	void UpdateRotateGravity(float InRotate);
 
+	/* Adjusting the position of Axe when it is launched */
 	void LodgePosition(const FHitResult& InHit);
+
+	UFUNCTION()
+	void UpdateWiggle(float InWigglePosition);
+
+	UFUNCTION()
+	void RecallMovement();
 };

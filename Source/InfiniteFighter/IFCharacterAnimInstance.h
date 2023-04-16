@@ -30,6 +30,10 @@ public:
 
 	FORCEINLINE void SetBlockState(const bool& bInBlockState) { bIsBlockState = bInBlockState; };
 
+	FORCEINLINE const bool GetRecall() const { return bIsRecalling; };
+
+	FORCEINLINE void SetRecall(const bool& bInRecall) { bIsRecalling = bInRecall; };
+
 	/* Plays Draw and Sheathe Montage */
 	void PlayDrawSheatheMontage();
 
@@ -79,6 +83,9 @@ private:
 
 	UPROPERTY()
 	bool bIsAttackPlaying;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	bool bIsRecalling;
 
 	UPROPERTY()
 	int32 AttackCombo;
