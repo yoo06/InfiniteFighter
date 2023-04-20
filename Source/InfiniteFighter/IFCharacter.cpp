@@ -227,11 +227,6 @@ void AIFCharacter::PostInitializeComponents()
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 }
 
-UCameraComponent* AIFCharacter::GetCamera()
-{
-	return Camera;
-}
-
 void AIFCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -336,7 +331,25 @@ void AIFCharacter::AimStart()
 		AimTimeline->Play();
 		AimTimeline->SetPlayRate(1.4f);
 	}
-	
+
+    FVector StartLocation = Camera->GetComponentLocation() + Camera->GetComponentRotation().Vector() * 100;
+    FVector EndLocation = Camera->GetComponentLocation() + Camera->GetComponentRotation().Vector() * 3000;
+
+    FHitResult HitResult;
+
+    bool bResult = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility);
+
+	if (bResult)
+	{
+		if (AimHUD->GetAimTargetUI())
+			AimHUD->SetAimTargetUI(true);
+	}
+	else
+	{
+		if (!AimHUD->GetAimTargetUI())
+			AimHUD->SetAimTargetUI(false);
+	}
+
 }
 
 void AIFCharacter::AimEnd()
@@ -358,6 +371,7 @@ void AIFCharacter::UpdateAimCamera(float NewArmLength)
 
 void AIFCharacter::Throw()
 {
+	AnimInstance->StopAllMontages(1);
 	AnimInstance->PlayThrowMontage();
 }
 

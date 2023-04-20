@@ -30,7 +30,7 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	FORCEINLINE class UCameraComponent* AIFCharacter::GetCamera();
+	FORCEINLINE const class UCameraComponent* AIFCharacter::GetCamera() const { return Camera; };
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)

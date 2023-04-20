@@ -6,7 +6,7 @@
 
 void UIFAimWidget::NativeConstruct()
 {
-    Aim = Cast<UImage>(GetWidgetFromName(TEXT("AimPoint")));
+    Aim        = Cast<UImage>(GetWidgetFromName(TEXT("AimPoint")));
     AimTargetL = Cast<UImage>(GetWidgetFromName(TEXT("AimOnTarget_L")));
     AimTargetR = Cast<UImage>(GetWidgetFromName(TEXT("AimOnTarget_R")));
 }
@@ -23,4 +23,9 @@ void UIFAimWidget::SetAimTargetUI(const bool& bIsTarget)
         AimTargetL->SetVisibility(ESlateVisibility::Hidden);
         AimTargetR->SetVisibility(ESlateVisibility::Hidden);
     }
+}
+
+const bool UIFAimWidget::GetAimTargetUI() const
+{
+    return (AimTargetL->GetVisibility() == ESlateVisibility::Hidden);
 }

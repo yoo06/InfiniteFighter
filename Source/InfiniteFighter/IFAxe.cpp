@@ -8,7 +8,6 @@
 #include "IFCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
-#include "DrawDebugHelpers.h"
 
 // Sets default values
 AIFAxe::AIFAxe()
@@ -118,31 +117,43 @@ void AIFAxe::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	// SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AIFAxe::OnSphereComponentBeginOverlap);
+	// Set gravity timeline when axe is thrown
 	OnGravityTimelineFunction.BindDynamic(this, &AIFAxe::UpdateAxeGravity);
 	AxeGravityTimeline->AddInterpFloat(AxeGravityCurveFloat, OnGravityTimelineFunction);
 
+	// set the axe to rotate by desired time
 	OnRotateTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRotateGravity);
 	AxeRotateTimeline->AddInterpFloat(AxeRotateCurveFloat, OnRotateTimelineFunction);
 
+	// called when timeline ends / function replacing loop
 	OnRotateTimelineFinished.BindDynamic(this, &AIFAxe::SpinStop);
 	AxeRotateTimeline->SetTimelineFinishedFunc(OnRotateTimelineFinished);
 
+	// wiggling before the recall
 	OnWiggleTimelineFunction.BindDynamic(this, &AIFAxe::UpdateWiggle);
 	WiggleTimeline->AddInterpFloat(WiggleCurveFloat, OnWiggleTimelineFunction);
 
+	// starts the recall function
 	OnWiggleTimelineFinished.BindDynamic(this, &AIFAxe::RecallMovement);
 	WiggleTimeline->SetTimelineFinishedFunc(OnWiggleTimelineFinished);
 
-	OnRightVectorTimelineFunction.    BindDynamic(this, &AIFAxe::UpdateRightVector);
-	OnReturnSpeedTimelineFunction.    BindDynamic(this, &AIFAxe::UpdateReturnLocation);
-	OnReturnTiltStartTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltStart);
-	OnReturnTiltEndTimelineFunction.  BindDynamic(this, &AIFAxe::UpdateTiltEnd);
-	RightVectorTimeline	   ->AddInterpFloat(RightVectorCurveFloat,     OnRightVectorTimelineFunction);
-	ReturnSpeedTimeline    ->AddInterpFloat(ReturnSpeedCurveFloat,     OnReturnSpeedTimelineFunction);
-	ReturnTiltEndTimeline  ->AddInterpFloat(ReturnTiltStartCurveFloat, OnReturnTiltStartTimelineFunction);
-	ReturnTiltStartTimeline->AddInterpFloat(ReturnTiltEndCurveFloat,   OnReturnTiltEndTimelineFunction);
+	// making the curve of the axe to the right when axe is recalling
+    OnRightVectorTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRightVector);
+    RightVectorTimeline->AddInterpFloat(RightVectorCurveFloat, OnRightVectorTimelineFunction);
 
+	// setting the speed of recall by distance
+    OnReturnSpeedTimelineFunction.BindDynamic(this, &AIFAxe::UpdateReturnLocation);
+    ReturnSpeedTimeline->AddInterpFloat(ReturnSpeedCurveFloat, OnReturnSpeedTimelineFunction);
+
+	// tilting when recall starts
+    OnReturnTiltEndTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltEnd);
+    ReturnTiltStartTimeline->AddInterpFloat(ReturnTiltEndCurveFloat, OnReturnTiltEndTimelineFunction);
+
+	// tilting when recall ends
+	OnReturnTiltStartTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltStart);
+	ReturnTiltEndTimeline->AddInterpFloat(ReturnTiltStartCurveFloat, OnReturnTiltStartTimelineFunction);
+
+	// binds the axe to character
 	OnReturnTimelineFinished.BindDynamic(this, &AIFAxe::CatchAxe);
 	ReturnTiltEndTimeline->SetTimelineFinishedFunc(OnReturnTimelineFinished);
 }
@@ -264,6 +275,7 @@ void AIFAxe::RecallMovement()
 {
 	SetAxeState(EAxeState::Returning);
 
+	// initialize components for recall
 	DistanceFromCharacter	  = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
 	float TimelinePlayRate	  = FMath::Clamp(1400 / DistanceFromCharacter, 0.4f, 0.7f);
 	ReturnStartLocation		  = GetActorLocation();
@@ -288,6 +300,7 @@ void AIFAxe::RecallMovement()
 
 void AIFAxe::UpdateRightVector(float InVector)
 {
+	// start position is designated, but the end position is dynamic
 	ReturnRightVector = ((DistanceFromCharacter * InVector) * Character->GetCamera()->GetRightVector()) + Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"));
 }
 
@@ -300,7 +313,7 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 void AIFAxe::UpdateTiltStart(float InValue)
 {
 	FRotator TiltRotation = FRotator(ReturnStartCameraRotation.Pitch, ReturnStartCameraRotation.Yaw, ReturnStartCameraRotation.Roll + 60.0f);
-	TiltingRotation = FMath::Lerp(ReturnStartRotation, TiltRotation, InValue);
+	TiltingRotation       = FMath::Lerp(ReturnStartRotation, TiltRotation, InValue);
 }
 
 void AIFAxe::UpdateTiltEnd(float InValue)
@@ -344,6 +357,5 @@ void AIFAxe::SpinStop()
 		AxeRotateTimeline->ReverseFromEnd();
 		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
 		SpinCount--;
-
 	}
 }

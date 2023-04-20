@@ -75,7 +75,7 @@ private:
 
 	FOnTimelineFloat OnGravityTimelineFunction;
 
-	/* Timeline for AxeGravity when thrown*/ 
+	/* Timeline for Axe Rotation*/ 
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UTimelineComponent> AxeRotateTimeline;
 
@@ -86,6 +86,7 @@ private:
 
 	FOnTimelineEvent OnRotateTimelineFinished;
 
+	/* Timeline for wiggling before recalling */
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UTimelineComponent> WiggleTimeline;
 
@@ -96,7 +97,7 @@ private:
 
 	FOnTimelineEvent OnWiggleTimelineFinished;
 
-	// Timeline for Axe return
+	/* Timeline for the return Function */
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<UTimelineComponent> ReturnTiltStartTimeline;
 
@@ -164,6 +165,7 @@ private:
 	UFUNCTION()
 	void CatchAxe();
 
+	/* Calculates how many times axe should rotate */
 	void CalculateSpin(float InTimelinePlayRate);
 
 	UFUNCTION()
