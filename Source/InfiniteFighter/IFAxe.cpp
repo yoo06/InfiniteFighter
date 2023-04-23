@@ -122,7 +122,7 @@ void AIFAxe::PostInitializeComponents()
 	AxeGravityTimeline->AddInterpFloat(AxeGravityCurveFloat, OnGravityTimelineFunction);
 
 	// set the axe to rotate by desired time
-	OnRotateTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRotateGravity);
+	OnRotateTimelineFunction.BindDynamic(this, &AIFAxe::UpdateRotate);
 	AxeRotateTimeline->AddInterpFloat(AxeRotateCurveFloat, OnRotateTimelineFunction);
 
 	// called when timeline ends / function replacing loop
@@ -216,7 +216,7 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
 	(
 		OutHit,
 		GetActorLocation(),
-		(GetVelocity().GetSafeNormal()) * 50.0f + GetActorLocation(),
+		(GetVelocity().GetSafeNormal()) * 55.0f + GetActorLocation(),
 		ECollisionChannel::ECC_Visibility
 	);
     if (bResult)
@@ -225,7 +225,7 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
     }
 }
 
-void AIFAxe::UpdateRotateGravity(float InRotate)
+void AIFAxe::UpdateRotate(float InRotate)
 {
 	Pivot->SetRelativeRotation(FRotator(InRotate * -360.0f, 0.0f, 0.0f));
 }
@@ -275,14 +275,15 @@ void AIFAxe::RecallMovement()
 {
 	SetAxeState(EAxeState::Returning);
 
-	// initialize components for recall
+	// Initialize components for recall
 	DistanceFromCharacter	  = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
-	float TimelinePlayRate	  = FMath::Clamp(1400 / DistanceFromCharacter, 0.4f, 0.7f);
+	float TimelinePlayRate	  = FMath::Clamp(1400 / DistanceFromCharacter, 0.4f, 5.0f);
 	ReturnStartLocation		  = GetActorLocation();
 	ReturnStartRotation		  = GetActorRotation();
 	ReturnStartCameraRotation = Character->GetCamera()->GetComponentRotation();
 	Lodge->SetRelativeRotation(FRotator::ZeroRotator);
 
+	// playing the timelines
 	RightVectorTimeline->PlayFromStart();
 	RightVectorTimeline->SetPlayRate(TimelinePlayRate);
 
@@ -306,12 +307,14 @@ void AIFAxe::UpdateRightVector(float InVector)
 
 void AIFAxe::UpdateReturnLocation(float InSpeed)
 {
+	// setting the axe location by lerp
 	ReturnLocation = FMath::Lerp(ReturnStartLocation, ReturnRightVector, InSpeed);
 	SetActorLocation(ReturnLocation);
 }
 
 void AIFAxe::UpdateTiltStart(float InValue)
 {
+	// Actual rotation will be done at TiltEnd
 	FRotator TiltRotation = FRotator(ReturnStartCameraRotation.Pitch, ReturnStartCameraRotation.Yaw, ReturnStartCameraRotation.Roll + 60.0f);
 	TiltingRotation       = FMath::Lerp(ReturnStartRotation, TiltRotation, InValue);
 }
@@ -343,19 +346,16 @@ void AIFAxe::SpinStop()
 	if (SpinCount == 1)
 	{
 		AxeRotateTimeline->Stop();
-		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
 		SpinCount = 0;
 	}
 	else if (SpinCount <= 0)
 	{
 		AxeRotateTimeline->PlayFromStart();
-		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
 		SpinCount--;
 	}
 	else
 	{
 		AxeRotateTimeline->ReverseFromEnd();
-		UE_LOG(LogTemp, Warning, TEXT("SpinCount : %d"), SpinCount);
 		SpinCount--;
 	}
 }

@@ -321,7 +321,6 @@ void AIFCharacter::StrongAttack()
 void AIFCharacter::AimStart()
 {
 	RotateToCamera();
-	
 
 	if (GetCharacterMovement()->MaxWalkSpeed != 200.0f)
 	{
@@ -333,7 +332,7 @@ void AIFCharacter::AimStart()
 	}
 
     FVector StartLocation = Camera->GetComponentLocation() + Camera->GetComponentRotation().Vector() * 100;
-    FVector EndLocation = Camera->GetComponentLocation() + Camera->GetComponentRotation().Vector() * 3000;
+    FVector EndLocation   = Camera->GetComponentLocation() + Camera->GetComponentRotation().Vector() * 3000;
 
     FHitResult HitResult;
 
@@ -433,10 +432,11 @@ void AIFCharacter::RecallAxe()
 
 void AIFCharacter::CatchAxe()
 {
-		AnimInstance->SetRecall(false);
-		AnimInstance->SetAxeHolding(true);
-		AnimInstance->SetDrawState(true);
-		AnimInstance->SetCanDoNextAction(true);
-		FName WeaponSocket(TEXT("Weapon_R"));
-		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+    AnimInstance->SetRecall(false);
+    AnimInstance->SetAxeHolding(true);
+    AnimInstance->SetDrawState(true);
+    AnimInstance->SetCanDoNextAction(true);
+    FName WeaponSocket(TEXT("Weapon_R"));
+    Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+	Axe->SetActorRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 }

@@ -227,8 +227,8 @@ void UIFCharacterAnimInstance::AnimNotify_RotationDefault()
 
 void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 {
-	bIsDrawState = false;
-	bIsAxeHolding = false;
+	bIsDrawState     = false;
+	bIsAxeHolding    = false;
 	bCanDoNextAction = true;
 
 	OnThrow.ExecuteIfBound();

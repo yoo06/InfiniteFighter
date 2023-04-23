@@ -67,19 +67,19 @@ private:
 	EAxeState CurrentAxeState;
 
 	/* Timeline for AxeGravity when thrown */ 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> AxeGravityTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> AxeGravityCurveFloat;
 
 	FOnTimelineFloat OnGravityTimelineFunction;
 
 	/* Timeline for Axe Rotation*/ 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> AxeRotateTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> AxeRotateCurveFloat;
 
 	FOnTimelineFloat OnRotateTimelineFunction;
@@ -87,10 +87,10 @@ private:
 	FOnTimelineEvent OnRotateTimelineFinished;
 
 	/* Timeline for wiggling before recalling */
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> WiggleTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> WiggleCurveFloat;
 
 	FOnTimelineFloat OnWiggleTimelineFunction;
@@ -98,28 +98,28 @@ private:
 	FOnTimelineEvent OnWiggleTimelineFinished;
 
 	/* Timeline for the return Function */
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> ReturnTiltStartTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> ReturnTiltEndTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> ReturnSpeedTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UTimelineComponent> RightVectorTimeline;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> ReturnTiltStartCurveFloat;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> ReturnSpeedCurveFloat;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> RightVectorCurveFloat;
 
-	UPROPERTY(VisibleAnywhere, Category = Movement)
+	UPROPERTY()
 	TObjectPtr<UCurveFloat> ReturnTiltEndCurveFloat;
 
 	FOnTimelineFloat OnReturnTiltStartTimelineFunction;
@@ -139,7 +139,7 @@ private:
 
 	/* Function for Updating Axe Rotation when thrown */
 	UFUNCTION()
-	void UpdateRotateGravity(float InRotate);
+	void UpdateRotate(float InRotate);
 
 	/* Adjusting the position of Axe when it is launched */
 	void LodgePosition(const FHitResult& InHit);
