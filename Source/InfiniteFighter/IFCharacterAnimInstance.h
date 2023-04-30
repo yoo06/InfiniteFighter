@@ -36,7 +36,6 @@ public:
 
 	FORCEINLINE void SetCanDoNextAction(const bool& bInNextAction) { bCanDoNextAction = bInNextAction; };
 
-
 	FORCEINLINE const bool GetRecall() const { return bIsRecalling; };
 
 	FORCEINLINE void SetRecall(const bool& bInRecall) { bIsRecalling = bInRecall; };
@@ -47,12 +46,17 @@ public:
 	/* Plays Parrying Montage */
 	void PlayParryingMontage();
 
-	/* Plays Attack Montage */
+	/* Plays Weak Attack Montage */
 	void PlayWeakAttackMontage();
 
+	/* Plays Strong Attack Montage */
 	void PlayStrongAttackMontage();
 
+	/* Plays Throwing Montage */
 	void PlayThrowMontage();
+
+	/* Plays Dodge Montage */
+	void PlayDodgeMontage(FVector2D Direction);
 
 	bool IsDrawOrSheatheMontage();
 
@@ -95,6 +99,9 @@ private:
 	bool bIsRecalling;
 
 	UPROPERTY()
+	bool bIsDodging;
+
+	UPROPERTY()
 	int32 AttackCombo;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
@@ -118,6 +125,57 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* ThrowMontage;
 
+	// 8direction Dodge Montage
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeBackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeBackLeftMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeBackRightMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeForwardMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeForwardLeftMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeForwardRightMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeLeftMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeRightMontage;
+
+
+	// 8direction Roll Montage
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollBackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollBackLeftMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollBackRightMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollForwardMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollForwardLeftMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollForwardRightMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollLeftMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* RollRightMontage;
+
 	/* Function to play when drawState starts */
 	UFUNCTION()
 	void DrawStateStart(UAnimMontage* Montage);
@@ -129,6 +187,9 @@ private:
 	/* Function when Attacking is finished */
 	UFUNCTION()
 	void AttackStateEnd(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void DodgeEnd(UAnimMontage* Montage, bool bInterrupted);
 
 	/* Make bCanDoNextAction to false */
 	UFUNCTION()

@@ -14,6 +14,7 @@
 #include "Components/WidgetComponent.h"
 #include "IFAxe.h"
 #include "IFAimWidget.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AIFCharacter::AIFCharacter()
@@ -82,6 +83,11 @@ AIFCharacter::AIFCharacter()
 	if (IA_RECALL.Succeeded())
 		RecallAction = IA_RECALL.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction>IA_EVADE
+	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Evade.IA_Evade"));
+	if (IA_EVADE.Succeeded())
+		EvadeAction = IA_EVADE.Object;
+
 	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/AimCurve.AimCurve"));
@@ -97,7 +103,7 @@ AIFCharacter::AIFCharacter()
 
 	// creating parts for character (springarm, camera)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRING_ARM"));
-	SpringArm->SetupAttachment(GetMesh(), "spine_03");
+	SpringArm->SetupAttachment(GetCapsuleComponent());
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAMERA"));
 	Camera->SetupAttachment(SpringArm);
@@ -107,7 +113,7 @@ AIFCharacter::AIFCharacter()
 	// setting spring arm
 	SpringArm->ProbeSize                = 16.0f;
 	SpringArm->TargetArmLength          = 170.0f;
-	SpringArm->SocketOffset             = FVector(0.0f, 50.0f, 30.0f);
+	SpringArm->SocketOffset             = FVector(0.0f, 50.0f, 60.0f);
 	SpringArm->bUsePawnControlRotation  = true;
 	SpringArm->bInheritPitch		    = true;
 	SpringArm->bInheritYaw			    = true;
@@ -136,6 +142,10 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Characters/IFCharacterAnimBlueprint.IFCharacterAnimBlueprint_C"));
 	if (CHARACTER_ANIM.Succeeded())
 		GetMesh()->SetAnimInstanceClass(CHARACTER_ANIM.Class);
+
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Character"));
+
+	MovementVector = FVector2D::ZeroVector;
 }
 
 // Called when the game starts or when spawned
@@ -195,6 +205,7 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(AimAction,		   ETriggerEvent::Completed, this, &AIFCharacter::AimEnd);
 		EnhancedInputComponent->BindAction(ThrowAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Throw);
 		EnhancedInputComponent->BindAction(RecallAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::RecallAxe);
+		EnhancedInputComponent->BindAction(EvadeAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Evade);
 	}
 
 }
@@ -229,7 +240,8 @@ void AIFCharacter::PostInitializeComponents()
 
 void AIFCharacter::Move(const FInputActionValue& Value)
 {
-	const FVector2D MovementVector = Value.Get<FVector2D>();
+	MovementVector = Value.Get<FVector2D>();
+
 
 	if (Controller != nullptr)
 	{
@@ -253,7 +265,6 @@ void AIFCharacter::Move(const FInputActionValue& Value)
 			AddMovementInput(ScaledMovementInput);
 		else if (CurrentInputType == ECommonInputType::Gamepad)
 			AddMovementInput(ScaledMovementInput, ((MovementVector.Size() / 50) < 0.7f) ? 0.4f : 1.0f);
-
 	}
 }
 
@@ -361,6 +372,11 @@ void AIFCharacter::AimEnd()
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 	AimTimeline->Reverse();
 	AimTimeline->SetPlayRate(0.9f);
+}
+
+void AIFCharacter::Evade()
+{
+	AnimInstance->PlayDodgeMontage(MovementVector.GetSafeNormal());
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)

@@ -16,6 +16,7 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	bIsAimState		   = false;
 	bIsRecalling	   = false;
 	AttackCombo		   = 0;
+	bIsDodging		   = false;
 
 	// setting montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DRAW_MONTAGE
@@ -52,6 +53,87 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Combat/Throw_Montage.Throw_Montage"));
 	if (THROW_MONTAGE.Succeeded())
 		ThrowMontage = THROW_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackward_Root_Montage.DodgeBackward_Root_Montage"));
+	if (DODGE_BACK_MONTAGE.Succeeded())
+		DodgeBackMontage = DODGE_BACK_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_LEFT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackwardLeft_Root_Montage.DodgeBackwardLeft_Root_Montage"));
+	if (DODGE_BACK_LEFT_MONTAGE.Succeeded())
+		DodgeBackLeftMontage = DODGE_BACK_LEFT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_RIGHT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackwardRight_Root_Montage.DodgeBackwardRight_Root_Montage"));
+	if (DODGE_BACK_RIGHT_MONTAGE.Succeeded())
+		DodgeBackRightMontage = DODGE_BACK_RIGHT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_FORWARD_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeForward_Root_Montage.DodgeForward_Root_Montage"));
+	if (DODGE_FORWARD_MONTAGE.Succeeded())
+		DodgeForwardMontage = DODGE_FORWARD_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_FORWARD_LEFT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeForwardLeft_Root_Montage.DodgeForwardLeft_Root_Montage"));
+	if (DODGE_FORWARD_LEFT_MONTAGE.Succeeded())
+		DodgeForwardLeftMontage = DODGE_FORWARD_LEFT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_FORWARD_RIGHT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeForwardRight_Root_Montage.DodgeForwardRight_Root_Montage"));
+	if (DODGE_FORWARD_RIGHT_MONTAGE.Succeeded())
+		DodgeForwardRightMontage = DODGE_FORWARD_RIGHT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_LEFT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeLeft_Root_Montage.DodgeLeft_Root_Montage"));
+	if (DODGE_LEFT_MONTAGE.Succeeded())
+		DodgeLeftMontage = DODGE_LEFT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_RIGHT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeRight_Root_Montage.DodgeRight_Root_Montage"));
+	if (DODGE_RIGHT_MONTAGE.Succeeded())
+		DodgeRightMontage = DODGE_RIGHT_MONTAGE.Object;
+
+	// asd
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_BACK_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollBackward_Root_Montage.RollBackward_Root_Montage"));
+	if (ROLL_BACK_MONTAGE.Succeeded())
+		RollBackMontage = ROLL_BACK_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_BACK_LEFT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollBackwardLeft_Root_Montage.RollBackwardLeft_Root_Montage"));
+	if (ROLL_BACK_LEFT_MONTAGE.Succeeded())
+		RollBackLeftMontage = ROLL_BACK_LEFT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_BACK_RIGHT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollBackwardRight_Root_Montage.RollBackwardRight_Root_Montage"));
+	if (ROLL_BACK_RIGHT_MONTAGE.Succeeded())
+		RollBackRightMontage = ROLL_BACK_RIGHT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_FORWARD_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollForward_Root_Montage.RollForward_Root_Montage"));
+	if (ROLL_FORWARD_MONTAGE.Succeeded())
+		RollForwardMontage = ROLL_FORWARD_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_FORWARD_LEFT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollForwardLeft_Root_Montage.RollForwardLeft_Root_Montage"));
+	if (ROLL_FORWARD_LEFT_MONTAGE.Succeeded())
+		RollForwardLeftMontage = ROLL_FORWARD_LEFT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_FORWARD_RIGHT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollForwardRight_Root_Montage.RollForwardRight_Root_Montage"));
+	if (ROLL_FORWARD_RIGHT_MONTAGE.Succeeded())
+		RollForwardRightMontage = ROLL_FORWARD_RIGHT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_LEFT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollLeft_Root_Montage.RollLeft_Root_Montage"));
+	if (ROLL_LEFT_MONTAGE.Succeeded())
+		RollLeftMontage = ROLL_LEFT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_RIGHT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollRight_Root_Montage.RollRight_Root_Montage"));
+	if (ROLL_RIGHT_MONTAGE.Succeeded())
+		RollRightMontage = ROLL_RIGHT_MONTAGE.Object;
 }
 
 void UIFCharacterAnimInstance::NativeInitializeAnimation()
@@ -62,7 +144,7 @@ void UIFCharacterAnimInstance::NativeInitializeAnimation()
 	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DrawStateEnd);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::AttackStateEnd);
-
+	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DodgeEnd);
 }
 
 void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -167,6 +249,49 @@ void UIFCharacterAnimInstance::PlayThrowMontage()
 		Montage_Play(ThrowMontage);
 }
 
+void UIFCharacterAnimInstance::PlayDodgeMontage(FVector2D Direction)
+{
+    if (bCanDoNextAction && !bIsDodging)
+    {
+        bIsDodging = true;
+        if (Direction.X >= -0.5 && Direction.X < 0.5 && Direction.Y > 0.5)
+            Montage_Play(DodgeForwardMontage);
+        else if (Direction.X >= 0.5 && Direction.Y >= 0.5)
+            Montage_Play(DodgeForwardRightMontage);
+        else if (Direction.X > 0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
+            Montage_Play(DodgeRightMontage);
+        else if (Direction.X > 0.5 && Direction.Y < -0.5)
+            Montage_Play(DodgeBackRightMontage);
+        else if (Direction.X < -0.5 && Direction.Y > 0.5)
+            Montage_Play(DodgeForwardLeftMontage);
+        else if (Direction.X < -0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
+            Montage_Play(DodgeLeftMontage);
+        else if (Direction.X <= -0.5 && Direction.Y <= -0.5)
+            Montage_Play(DodgeBackLeftMontage);
+        else
+            Montage_Play(DodgeBackMontage);
+    }
+    else if (bCanDoNextAction && bIsDodging)
+    {
+		if (Direction.X >= -0.5 && Direction.X < 0.5 && Direction.Y > 0.5)
+            Montage_Play(RollForwardMontage);
+		else if (Direction.X >= 0.5 && Direction.Y >= 0.5)
+            Montage_Play(RollForwardRightMontage);
+		else if (Direction.X > 0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
+            Montage_Play(RollRightMontage);
+		else if (Direction.X > 0.5 && Direction.Y < -0.5)
+            Montage_Play(RollBackRightMontage);
+		else if (Direction.X < -0.5 && Direction.Y > 0.5)
+            Montage_Play(RollForwardLeftMontage);
+		else if (Direction.X < -0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
+            Montage_Play(RollLeftMontage);
+		else if (Direction.X <= -0.5 && Direction.Y <= -0.5)
+            Montage_Play(RollBackLeftMontage);
+        else
+            Montage_Play(RollBackMontage);
+    }
+}
+
 bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()
 {
 	return (Montage_IsActive(DrawMontage) || Montage_IsActive(SheatheMontage));
@@ -192,7 +317,12 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 		AttackCombo = 0;
 		bIsAttackPlaying = false;
 	}
+}
 
+void UIFCharacterAnimInstance::DodgeEnd(UAnimMontage* Montage, bool bInterrupted)
+{
+	if(bIsDodging)
+		bIsDodging = false;
 }
 
 void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)

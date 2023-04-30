@@ -8,6 +8,7 @@
 #include "IFCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AIFAxe::AIFAxe()
@@ -34,7 +35,7 @@ AIFAxe::AIFAxe()
 	if (SK_AXE.Succeeded())
 		Axe->SetStaticMesh(SK_AXE.Object);
 
-	Axe->SetCollisionProfileName(TEXT("NoCollision"));
+	Axe->SetCollisionProfileName(TEXT("Weapon"));
 
 	// setting the projectile
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("PROJECTILE_MOVEMENT"));
@@ -90,6 +91,7 @@ AIFAxe::AIFAxe()
 	ReturnSpeedTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_SPEED_TIMELINE"));
 	RightVectorTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RIGHT_VECTOR_TIMELINE"));
 
+	CameraLocation			  = FVector::ZeroVector;
 	CameraRotation			  = FRotator::ZeroRotator;
 	DistanceFromCharacter	  = 0;
 	ReturnRightVector		  = FVector::ZeroVector;
@@ -165,9 +167,9 @@ void AIFAxe::Throw()
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	// Get the current forward direction of the Axe
-	FVector  Direction		= Character->GetCamera()->GetForwardVector();
-	FVector  CameraLocation = Character->GetCamera()->GetComponentLocation();
-	CameraRotation = Character->GetCamera()->GetComponentRotation();
+	FVector  Direction = Character->GetCamera()->GetForwardVector();
+	CameraLocation	   = Character->GetCamera()->GetComponentLocation();
+	CameraRotation	   = Character->GetCamera()->GetComponentRotation();
 
 	SetActorLocationAndRotation((Direction * 200.0f + CameraLocation) - Pivot->GetRelativeLocation(), CameraRotation);
 
@@ -194,7 +196,6 @@ void AIFAxe::Recall()
     }
     case EAxeState::Flying:
     {
-        
         ProjectileMovement->Deactivate();
         AxeGravityTimeline->Stop();
         AxeRotateTimeline ->Stop();
@@ -250,7 +251,6 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 	// setting the rotation by using ImpactNormal position
 	FMatrix RotateMatrix(InHit.ImpactNormal.GetSafeNormal(), FVector::ZeroVector, FVector::ZeroVector, FVector::ZeroVector);
 	float MatrixPitch = RotateMatrix.Rotator().Pitch;
-
 	float AdjustPitch = MatrixPitch > 0 ? InclineSurfaceRange - MatrixPitch : RegularSurfaceRange - MatrixPitch;
 
 	// setting the rotation of lodge
@@ -261,6 +261,20 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 	FVector AdjustLocation = InHit.ImpactPoint + FVector(0.0f, 0.0f, AdjustZ) + (GetActorLocation() - Lodge->GetComponentLocation());
 
 	SetActorLocation(AdjustLocation);
+
+	if (InHit.BoneName != NAME_None)
+	{
+		ACharacter* TargetPawn = Cast<ACharacter>(InHit.GetActor());
+		if (TargetPawn)
+		{
+            /*AttachToActor(TargetPawn, FAttachmentTransformRules::SnapToTargetIncludingScale, InHit.BoneName);
+            TargetPawn->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+            TargetPawn->GetMesh()->SetSimulatePhysics(true);
+            TargetPawn->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+            TargetPawn->GetMesh()->AddImpulseAtLocation((InHit.GetActor()->GetActorLocation() - CameraLocation).GetSafeNormal() * 20000, TargetPawn->GetActorLocation(), InHit.BoneName);*/
+			TargetPawn->GetMesh()->bPauseAnims = true;
+		}
+	};
 }
 
 void AIFAxe::UpdateWiggle(float InWigglePosition)

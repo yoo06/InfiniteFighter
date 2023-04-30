@@ -62,6 +62,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<class AIFCharacter> Character;
 
+	FVector CameraLocation;
+
 	FRotator CameraRotation;
 
 	EAxeState CurrentAxeState;

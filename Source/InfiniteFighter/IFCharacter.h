@@ -69,6 +69,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> RecallAction;
 
+	UPROPERTY(VisibleAnywhere, Category = Input)
+	TObjectPtr<class UInputAction> EvadeAction;
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class UCameraComponent> Camera;
 
@@ -97,6 +100,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<class UCommonInputSubsystem> InputSubsystem;
+
+	UPROPERTY()
+	FVector2D MovementVector;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);
@@ -130,6 +136,8 @@ private:
 	void AimStart();
 
 	void AimEnd();
+
+	void Evade();
 
 	UFUNCTION()
 	void UpdateAimCamera(float NewArmLength);
