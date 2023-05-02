@@ -2,7 +2,7 @@
 
 
 #include "IFGameMode.h"
-#include "IFCharacter.h"
+#include "Character/IFCharacter.h"
 
 AIFGameMode::AIFGameMode()
 {
