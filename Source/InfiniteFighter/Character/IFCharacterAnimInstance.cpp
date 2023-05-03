@@ -134,6 +134,8 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollRight_Root_Montage.RollRight_Root_Montage"));
 	if (ROLL_RIGHT_MONTAGE.Succeeded())
 		RollRightMontage = ROLL_RIGHT_MONTAGE.Object;
+
+	
 }
 
 void UIFCharacterAnimInstance::NativeInitializeAnimation()
@@ -144,7 +146,16 @@ void UIFCharacterAnimInstance::NativeInitializeAnimation()
 	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DrawStateEnd);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::AttackStateEnd);
-	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DodgeEnd);
+
+	DodgeMontages.Add(DodgeBackMontage);
+	DodgeMontages.Add(DodgeBackLeftMontage);
+	DodgeMontages.Add(DodgeBackRightMontage);
+	DodgeMontages.Add(DodgeForwardMontage);
+	DodgeMontages.Add(DodgeForwardLeftMontage);
+	DodgeMontages.Add(DodgeForwardRightMontage);
+	DodgeMontages.Add(DodgeLeftMontage);
+	DodgeMontages.Add(DodgeRightMontage);
+
 }
 
 void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -249,47 +260,56 @@ void UIFCharacterAnimInstance::PlayThrowMontage()
 		Montage_Play(ThrowMontage);
 }
 
-void UIFCharacterAnimInstance::PlayDodgeMontage(FVector2D Direction)
+void UIFCharacterAnimInstance::PlayDodgeMontage(FVector Direction)
 {
-    if (bCanDoNextAction && !bIsDodging)
-    {
-        bIsDodging = true;
-        if (Direction.X >= -0.5 && Direction.X < 0.5 && Direction.Y > 0.5)
-            Montage_Play(DodgeForwardMontage);
-        else if (Direction.X >= 0.5 && Direction.Y >= 0.5)
-            Montage_Play(DodgeForwardRightMontage);
-        else if (Direction.X > 0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
-            Montage_Play(DodgeRightMontage);
-        else if (Direction.X > 0.5 && Direction.Y < -0.5)
-            Montage_Play(DodgeBackRightMontage);
-        else if (Direction.X < -0.5 && Direction.Y > 0.5)
-            Montage_Play(DodgeForwardLeftMontage);
-        else if (Direction.X < -0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
-            Montage_Play(DodgeLeftMontage);
-        else if (Direction.X <= -0.5 && Direction.Y <= -0.5)
-            Montage_Play(DodgeBackLeftMontage);
-        else
-            Montage_Play(DodgeBackMontage);
-    }
-    else if (bCanDoNextAction && bIsDodging)
-    {
-		if (Direction.X >= -0.5 && Direction.X < 0.5 && Direction.Y > 0.5)
-            Montage_Play(RollForwardMontage);
-		else if (Direction.X >= 0.5 && Direction.Y >= 0.5)
-            Montage_Play(RollForwardRightMontage);
-		else if (Direction.X > 0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
-            Montage_Play(RollRightMontage);
-		else if (Direction.X > 0.5 && Direction.Y < -0.5)
-            Montage_Play(RollBackRightMontage);
-		else if (Direction.X < -0.5 && Direction.Y > 0.5)
-            Montage_Play(RollForwardLeftMontage);
-		else if (Direction.X < -0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
-            Montage_Play(RollLeftMontage);
-		else if (Direction.X <= -0.5 && Direction.Y <= -0.5)
-            Montage_Play(RollBackLeftMontage);
-        else
-            Montage_Play(RollBackMontage);
-    }
+	if (bCanDoNextAction)
+	{
+		for (const auto CurrentMontage : DodgeMontages)
+		{
+			if (CurrentMontage == GetCurrentActiveMontage())
+			{
+				if (Direction.Y >= -0.5 && Direction.Y < 0.5 && Direction.X > 0.5)
+					Montage_Play(RollForwardMontage);
+				else if (Direction.Y >= 0.5 && Direction.X >= 0.5)
+					Montage_Play(RollForwardRightMontage);
+				else if (Direction.Y > 0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+					Montage_Play(RollRightMontage);
+				else if (Direction.Y > 0.5 && Direction.X < -0.5)
+					Montage_Play(RollBackRightMontage);
+				else if (Direction.Y < -0.5 && Direction.X > 0.5)
+					Montage_Play(RollForwardLeftMontage);
+				else if (Direction.Y < -0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+					Montage_Play(RollLeftMontage);
+				else if (Direction.Y <= -0.5 && Direction.X <= -0.5)
+					Montage_Play(RollBackLeftMontage);
+				else if (Direction.X < -0.5 && Direction.Y >= -0.5 && Direction.Y < 0.5)
+					Montage_Play(RollBackMontage);
+				else
+					return;
+
+				return;
+			}
+		}
+		if (Direction.Y >= -0.5 && Direction.Y < 0.5 && Direction.X > 0.5)
+			Montage_Play(DodgeForwardMontage);
+		else if (Direction.Y >= 0.5 && Direction.X >= 0.5)
+			Montage_Play(DodgeForwardRightMontage);
+		else if (Direction.Y > 0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+			Montage_Play(DodgeRightMontage);
+		else if (Direction.Y > 0.5 && Direction.X < -0.5)
+			Montage_Play(DodgeBackRightMontage);
+		else if (Direction.Y < -0.5 && Direction.X > 0.5)
+			Montage_Play(DodgeForwardLeftMontage);
+		else if (Direction.Y < -0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+			Montage_Play(DodgeLeftMontage);
+		else if (Direction.Y <= -0.5 && Direction.X <= -0.5)
+			Montage_Play(DodgeBackLeftMontage);
+		else if (Direction.X < -0.5 && Direction.Y >= -0.5 && Direction.Y < 0.5)
+			Montage_Play(DodgeBackMontage);
+		else
+			return;
+
+	}
 }
 
 bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()
@@ -317,12 +337,6 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 		AttackCombo = 0;
 		bIsAttackPlaying = false;
 	}
-}
-
-void UIFCharacterAnimInstance::DodgeEnd(UAnimMontage* Montage, bool bInterrupted)
-{
-	if(bIsDodging)
-		bIsDodging = false;
 }
 
 void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)

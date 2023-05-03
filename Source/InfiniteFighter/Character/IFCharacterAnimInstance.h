@@ -56,7 +56,7 @@ public:
 	void PlayThrowMontage();
 
 	/* Plays Dodge Montage */
-	void PlayDodgeMontage(FVector2D Direction);
+	void PlayDodgeMontage(FVector Direction);
 
 	bool IsDrawOrSheatheMontage();
 
@@ -103,6 +103,9 @@ private:
 
 	UPROPERTY()
 	int32 AttackCombo;
+
+	UPROPERTY()
+	TArray<UAnimMontage*> DodgeMontages;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* DrawMontage;
@@ -187,9 +190,6 @@ private:
 	/* Function when Attacking is finished */
 	UFUNCTION()
 	void AttackStateEnd(UAnimMontage* Montage, bool bInterrupted);
-
-	UFUNCTION()
-	void DodgeEnd(UAnimMontage* Montage, bool bInterrupted);
 
 	/* Make bCanDoNextAction to false */
 	UFUNCTION()

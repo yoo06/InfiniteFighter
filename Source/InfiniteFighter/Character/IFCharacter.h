@@ -78,6 +78,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class USpringArmComponent> SpringArm;
 
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	TObjectPtr<class UMotionWarpingComponent> MotionWarpingComponent;
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<UTimelineComponent> AimTimeline;
 
@@ -100,9 +103,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<class UCommonInputSubsystem> InputSubsystem;
-
-	UPROPERTY()
-	FVector2D MovementVector;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

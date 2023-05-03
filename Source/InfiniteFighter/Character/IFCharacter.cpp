@@ -15,6 +15,7 @@
 #include "IFAxe.h"
 #include "UI/IFAimWidget.h"
 #include "Components/CapsuleComponent.h"
+#include "MotionWarpingComponent.h"
 
 // Sets default values
 AIFCharacter::AIFCharacter()
@@ -110,6 +111,8 @@ AIFCharacter::AIFCharacter()
 	// positioning the skeletal mesh
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -90.0f), FRotator(0.0f, -90.0f, 0.0f));
 
+	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MOTION_WARPING_COMPONENT"));
+
 	// setting spring arm
 	SpringArm->ProbeSize                = 16.0f;
 	SpringArm->TargetArmLength          = 170.0f;
@@ -144,8 +147,6 @@ AIFCharacter::AIFCharacter()
 		GetMesh()->SetAnimInstanceClass(CHARACTER_ANIM.Class);
 
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Character"));
-
-	MovementVector = FVector2D::ZeroVector;
 }
 
 // Called when the game starts or when spawned
@@ -240,8 +241,7 @@ void AIFCharacter::PostInitializeComponents()
 
 void AIFCharacter::Move(const FInputActionValue& Value)
 {
-	MovementVector = Value.Get<FVector2D>();
-
+	const FVector2D MovementVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
@@ -376,7 +376,7 @@ void AIFCharacter::AimEnd()
 
 void AIFCharacter::Evade()
 {
-	AnimInstance->PlayDodgeMontage(MovementVector.GetSafeNormal());
+	AnimInstance->PlayDodgeMontage(GetLastMovementInputVector().GetSafeNormal());
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)

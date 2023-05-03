@@ -10,6 +10,6 @@ public class InfiniteFighter : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] { "InfiniteFighter" });
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput", "AnimGraphRuntime", "CommonInput", "UMG" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput", "AnimGraphRuntime", "CommonInput", "UMG", "MotionWarping" });
 	}
 }
