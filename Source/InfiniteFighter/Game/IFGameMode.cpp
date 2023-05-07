@@ -6,5 +6,8 @@
 
 AIFGameMode::AIFGameMode()
 {
-	DefaultPawnClass = AIFCharacter::StaticClass();
+	static ConstructorHelpers::FClassFinder<APawn> ThirdPersonClassRef
+	(TEXT("/Script/InfiniteFighter.IFCharacter"));
+	if(ThirdPersonClassRef.Succeeded())
+		DefaultPawnClass = ThirdPersonClassRef.Class;
 }

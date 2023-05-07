@@ -54,6 +54,11 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (THROW_MONTAGE.Succeeded())
 		ThrowMontage = THROW_MONTAGE.Object;
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> EXECUTE_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/MatchedCombat/LegSweepStomp_Att_Montage.LegSweepStomp_Att_Montage"));
+	if (EXECUTE_MONTAGE.Succeeded())
+		ExecuteMontage = EXECUTE_MONTAGE.Object;
+
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackward_Root_Montage.DodgeBackward_Root_Montage"));
 	if (DODGE_BACK_MONTAGE.Succeeded())
@@ -134,8 +139,6 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollRight_Root_Montage.RollRight_Root_Montage"));
 	if (ROLL_RIGHT_MONTAGE.Succeeded())
 		RollRightMontage = ROLL_RIGHT_MONTAGE.Object;
-
-	
 }
 
 void UIFCharacterAnimInstance::NativeInitializeAnimation()
@@ -260,56 +263,60 @@ void UIFCharacterAnimInstance::PlayThrowMontage()
 		Montage_Play(ThrowMontage);
 }
 
-void UIFCharacterAnimInstance::PlayDodgeMontage(FVector Direction)
+void UIFCharacterAnimInstance::PlayDodgeMontage(FVector2D Direction)
 {
-	if (bCanDoNextAction)
-	{
-		for (const auto CurrentMontage : DodgeMontages)
-		{
-			if (CurrentMontage == GetCurrentActiveMontage())
-			{
-				if (Direction.Y >= -0.5 && Direction.Y < 0.5 && Direction.X > 0.5)
+    if (bCanDoNextAction)
+    {
+        for (const auto& CurrentMontage : DodgeMontages)
+        {
+            if (CurrentMontage == GetCurrentActiveMontage())
+            {
+				if (Direction.X >= -0.5 && Direction.X < 0.5 && Direction.Y > 0.5)
 					Montage_Play(RollForwardMontage);
-				else if (Direction.Y >= 0.5 && Direction.X >= 0.5)
+				else if (Direction.X >= 0.5 && Direction.Y >= 0.5)
 					Montage_Play(RollForwardRightMontage);
-				else if (Direction.Y > 0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+				else if (Direction.X > 0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
 					Montage_Play(RollRightMontage);
-				else if (Direction.Y > 0.5 && Direction.X < -0.5)
+				else if (Direction.X > 0.5 && Direction.Y < -0.5)
 					Montage_Play(RollBackRightMontage);
-				else if (Direction.Y < -0.5 && Direction.X > 0.5)
+				else if (Direction.X < -0.5 && Direction.Y > 0.5)
 					Montage_Play(RollForwardLeftMontage);
-				else if (Direction.Y < -0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+				else if (Direction.X < -0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
 					Montage_Play(RollLeftMontage);
-				else if (Direction.Y <= -0.5 && Direction.X <= -0.5)
+				else if (Direction.X <= -0.5 && Direction.Y <= -0.5)
 					Montage_Play(RollBackLeftMontage);
-				else if (Direction.X < -0.5 && Direction.Y >= -0.5 && Direction.Y < 0.5)
+				else if (Direction.Y < -0.5 && Direction.X >= -0.5 && Direction.X < 0.5)
 					Montage_Play(RollBackMontage);
 				else
 					return;
 
-				return;
-			}
-		}
-		if (Direction.Y >= -0.5 && Direction.Y < 0.5 && Direction.X > 0.5)
+                return;
+            }
+        }
+		if (Direction.X >= -0.5 && Direction.X < 0.5 && Direction.Y > 0.5)
 			Montage_Play(DodgeForwardMontage);
-		else if (Direction.Y >= 0.5 && Direction.X >= 0.5)
+		else if (Direction.X >= 0.5 && Direction.Y >= 0.5)
 			Montage_Play(DodgeForwardRightMontage);
-		else if (Direction.Y > 0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+		else if (Direction.X > 0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
 			Montage_Play(DodgeRightMontage);
-		else if (Direction.Y > 0.5 && Direction.X < -0.5)
+		else if (Direction.X > 0.5 && Direction.Y < -0.5)
 			Montage_Play(DodgeBackRightMontage);
-		else if (Direction.Y < -0.5 && Direction.X > 0.5)
+		else if (Direction.X < -0.5 && Direction.Y > 0.5)
 			Montage_Play(DodgeForwardLeftMontage);
-		else if (Direction.Y < -0.5 && Direction.X < 0.5 && Direction.X >= -0.5)
+		else if (Direction.X < -0.5 && Direction.Y < 0.5 && Direction.Y >= -0.5)
 			Montage_Play(DodgeLeftMontage);
-		else if (Direction.Y <= -0.5 && Direction.X <= -0.5)
+		else if (Direction.X <= -0.5 && Direction.Y <= -0.5)
 			Montage_Play(DodgeBackLeftMontage);
-		else if (Direction.X < -0.5 && Direction.Y >= -0.5 && Direction.Y < 0.5)
+		else if (Direction.Y < -0.5 && Direction.X >= -0.5 && Direction.X < 0.5)
 			Montage_Play(DodgeBackMontage);
 		else
 			return;
+    }
+}
 
-	}
+void UIFCharacterAnimInstance::PlayExecuteMontage()
+{
+	Montage_Play(ExecuteMontage);
 }
 
 bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()

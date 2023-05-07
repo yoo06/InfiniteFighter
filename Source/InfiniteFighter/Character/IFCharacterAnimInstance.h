@@ -22,10 +22,12 @@ class INFINITEFIGHTER_API UIFCharacterAnimInstance : public UAnimInstance
 public:
 	UIFCharacterAnimInstance();
 
+protected:
 	virtual void NativeInitializeAnimation() override;
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+public:
 	FORCEINLINE void SetAimState(const bool& bInAimState) { bIsAimState = bInAimState; };
 
 	FORCEINLINE void SetBlockState(const bool& bInBlockState) { bIsBlockState = bInBlockState; };
@@ -56,7 +58,9 @@ public:
 	void PlayThrowMontage();
 
 	/* Plays Dodge Montage */
-	void PlayDodgeMontage(FVector Direction);
+	void PlayDodgeMontage(FVector2D Direction);
+
+	void PlayExecuteMontage();
 
 	bool IsDrawOrSheatheMontage();
 
@@ -127,6 +131,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* ThrowMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ExecuteMontage;
 
 	// 8direction Dodge Montage
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))

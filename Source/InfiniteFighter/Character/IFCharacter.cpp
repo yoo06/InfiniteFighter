@@ -16,6 +16,10 @@
 #include "UI/IFAimWidget.h"
 #include "Components/CapsuleComponent.h"
 #include "MotionWarpingComponent.h"
+#include "AI/IFEnemy.h"
+#include "LevelSequencePlayer.h"
+#include "LevelSequence.h"
+
 
 // Sets default values
 AIFCharacter::AIFCharacter()
@@ -89,6 +93,11 @@ AIFCharacter::AIFCharacter()
 	if (IA_EVADE.Succeeded())
 		EvadeAction = IA_EVADE.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction>IA_EXECUTE
+	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Execute.IA_Execute"));
+	if (IA_EXECUTE.Succeeded())
+		ExecuteAction = IA_EXECUTE.Object;
+
 	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/AimCurve.AimCurve"));
@@ -115,8 +124,8 @@ AIFCharacter::AIFCharacter()
 
 	// setting spring arm
 	SpringArm->ProbeSize                = 16.0f;
-	SpringArm->TargetArmLength          = 170.0f;
-	SpringArm->SocketOffset             = FVector(0.0f, 50.0f, 60.0f);
+	SpringArm->TargetArmLength          = 200.0f;
+	SpringArm->SocketOffset             = FVector(0.0f, 50.0f, 80.0f);
 	SpringArm->bUsePawnControlRotation  = true;
 	SpringArm->bInheritPitch		    = true;
 	SpringArm->bInheritYaw			    = true;
@@ -124,7 +133,7 @@ AIFCharacter::AIFCharacter()
 	// enabling camera lag for a smoother look
 	SpringArm->bEnableCameraLag		    = true;
 	SpringArm->bEnableCameraRotationLag = true;
-	SpringArm->CameraLagMaxDistance     = 20.0f;
+	SpringArm->CameraLagMaxDistance     = 5.0f;
 	SpringArm->CameraLagSpeed           = 2.0f;
 	SpringArm->CameraRotationLagSpeed   = 10.0f;
 	bUseControllerRotationYaw           = false;
@@ -147,6 +156,14 @@ AIFCharacter::AIFCharacter()
 		GetMesh()->SetAnimInstanceClass(CHARACTER_ANIM.Class);
 
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Character"));
+
+	MovementVector = FVector2D::ZeroVector;
+	Target == nullptr;
+
+	static ConstructorHelpers::FObjectFinder<ULevelSequence>LEVEL_SEQUENCE
+	(TEXT("/Game/InFiniteFighter/Sequencer/ExecuteSequencer.ExecuteSequencer"));
+	if (LEVEL_SEQUENCE.Succeeded())
+		LevelSequence = LEVEL_SEQUENCE.Object;
 }
 
 // Called when the game starts or when spawned
@@ -182,7 +199,6 @@ void AIFCharacter::BeginPlay()
 void AIFCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
@@ -207,6 +223,7 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(ThrowAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Throw);
 		EnhancedInputComponent->BindAction(RecallAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::RecallAxe);
 		EnhancedInputComponent->BindAction(EvadeAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Evade);
+		EnhancedInputComponent->BindAction(ExecuteAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::Execute);
 	}
 
 }
@@ -224,7 +241,8 @@ void AIFCharacter::PostInitializeComponents()
 
 	// cast IFCharacterAnimInstance to Character's AnimInstance
 	AnimInstance = Cast<UIFCharacterAnimInstance>(GetMesh()->GetAnimInstance());
-	
+
+
 	// Binding the Delegates
 	AnimInstance->OnDraw.		   BindUObject(this, &AIFCharacter::Draw);
 	AnimInstance->OnSheathe.	   BindUObject(this, &AIFCharacter::Sheathe);
@@ -237,11 +255,20 @@ void AIFCharacter::PostInitializeComponents()
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
+
+	FMovieSceneSequencePlaybackSettings Settings;
+	Settings.bDisableLookAtInput   = true;
+	Settings.bDisableMovementInput = true;
+	Settings.bHideHud			   = true;
+
+	ALevelSequenceActor* SequenceActor;
+
+	LevelSequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), LevelSequence, Settings, SequenceActor);
 }
 
 void AIFCharacter::Move(const FInputActionValue& Value)
 {
-	const FVector2D MovementVector = Value.Get<FVector2D>();
+	MovementVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
@@ -321,7 +348,7 @@ void AIFCharacter::BlockEnd()
 
 void AIFCharacter::WeakAttack()
 {
-	AnimInstance->PlayWeakAttackMontage();
+		AnimInstance->PlayWeakAttackMontage();
 }
 
 void AIFCharacter::StrongAttack()
@@ -339,7 +366,7 @@ void AIFCharacter::AimStart()
 		AnimInstance->SetAimState(true);
 		GetCharacterMovement()->MaxWalkSpeed = 200.0f;
 		AimTimeline->Play();
-		AimTimeline->SetPlayRate(1.4f);
+		AimTimeline->SetPlayRate(2.0f);
 	}
 
     FVector StartLocation = Camera->GetComponentLocation() + Camera->GetComponentRotation().Vector() * 100;
@@ -371,12 +398,25 @@ void AIFCharacter::AimEnd()
 	AnimInstance->SetAimState(false);
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 	AimTimeline->Reverse();
-	AimTimeline->SetPlayRate(0.9f);
+	AimTimeline->SetPlayRate(0.6f);
 }
 
 void AIFCharacter::Evade()
 {
-	AnimInstance->PlayDodgeMontage(GetLastMovementInputVector().GetSafeNormal());
+	if (GetVelocity().Size() == 0)
+		MovementVector = FVector2D::ZeroVector;
+	AnimInstance->PlayDodgeMontage(MovementVector.GetSafeNormal());
+}
+
+void AIFCharacter::Execute()
+{
+	if (Target != nullptr)
+	{
+		AnimInstance->PlayExecuteMontage();
+		Target->PlayExecuteVictim();
+		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+		LevelSequencePlayer->Play();
+	}
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)

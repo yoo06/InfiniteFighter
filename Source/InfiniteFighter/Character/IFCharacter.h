@@ -8,6 +8,8 @@
 #include "Components/TimelineComponent.h"
 #include "IFCharacter.generated.h"
 
+DECLARE_DELEGATE(FOnExecuteDelegate);
+
 UCLASS()
 class INFINITEFIGHTER_API AIFCharacter : public ACharacter
 {
@@ -32,6 +34,10 @@ public:
 
 	FORCEINLINE const class UCameraComponent* AIFCharacter::GetCamera() const { return Camera; };
 
+	UPROPERTY()
+	TObjectPtr<class AIFEnemy> Target;
+
+	FOnExecuteDelegate OnExecute;
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
@@ -72,6 +78,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> EvadeAction;
 
+	UPROPERTY(VisibleAnywhere, Category = Input)
+	TObjectPtr<class UInputAction> ExecuteAction;
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class UCameraComponent> Camera;
 
@@ -103,6 +112,15 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<class UCommonInputSubsystem> InputSubsystem;
+
+	UPROPERTY()
+	FVector2D MovementVector;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class ULevelSequencePlayer> LevelSequencePlayer;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class ULevelSequence> LevelSequence;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);
@@ -138,6 +156,8 @@ private:
 	void AimEnd();
 
 	void Evade();
+
+	void Execute();
 
 	UFUNCTION()
 	void UpdateAimCamera(float NewArmLength);

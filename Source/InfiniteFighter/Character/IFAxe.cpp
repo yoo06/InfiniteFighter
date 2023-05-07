@@ -91,12 +91,12 @@ AIFAxe::AIFAxe()
 	ReturnSpeedTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_SPEED_TIMELINE"));
 	RightVectorTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RIGHT_VECTOR_TIMELINE"));
 
-	CameraLocation			  = FVector::ZeroVector;
-	CameraRotation			  = FRotator::ZeroRotator;
 	DistanceFromCharacter	  = 0;
+	CameraLocation			  = FVector::ZeroVector;
 	ReturnRightVector		  = FVector::ZeroVector;
 	ReturnLocation			  = FVector::ZeroVector;
 	ReturnStartLocation		  = FVector::ZeroVector;
+	CameraRotation			  = FRotator::ZeroRotator;
 	ReturnStartRotation		  = FRotator::ZeroRotator;
 	ReturnStartCameraRotation = FRotator::ZeroRotator;
 	TiltingRotation			  = FRotator::ZeroRotator;
