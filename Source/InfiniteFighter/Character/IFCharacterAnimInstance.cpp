@@ -321,7 +321,7 @@ void UIFCharacterAnimInstance::PlayExecuteMontage()
 
 bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()
 {
-	return (Montage_IsActive(DrawMontage) || Montage_IsActive(SheatheMontage));
+	return (Montage_IsActive(DrawMontage) || Montage_IsActive(SheatheMontage) || Montage_IsActive(ExecuteMontage));
 }
 
 void UIFCharacterAnimInstance::DrawStateStart(UAnimMontage* Montage)
@@ -344,6 +344,11 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 		AttackCombo = 0;
 		bIsAttackPlaying = false;
 	}
+}
+
+void UIFCharacterAnimInstance::OnExecutionEnd(UAnimMontage* Montage, bool bInterrupted)
+{
+	OnExecution.ExecuteIfBound();
 }
 
 void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)

@@ -193,6 +193,7 @@ void AIFCharacter::BeginPlay()
 	RotateDefault();
 
 	AimHUD = CreateWidget<UIFAimWidget>(GetWorld()->GetFirstPlayerController(), AimHUDClass);
+
 }
 
 // Called every frame
@@ -250,8 +251,9 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnCharacterStop. BindUObject(this, &AIFCharacter::RotateDefault);
 	AnimInstance->OnMontageStarted.AddDynamic (this, &AIFCharacter::RotateToCameraMontage);
 	AnimInstance->OnMontageEnded.  AddDynamic (this, &AIFCharacter::RotateDefaultMontage);
-	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::Throw);
+	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
+	AnimInstance->OnExecution.	   BindLambda([this] { Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation()); });
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -412,9 +414,13 @@ void AIFCharacter::Execute()
 {
 	if (Target != nullptr)
 	{
+		Sheathe();
+		AnimInstance->SetAxeHolding(false);
+		AnimInstance->SetDrawState(false);
 		AnimInstance->PlayExecuteMontage();
 		Target->PlayExecuteVictim();
 		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+		Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
 		LevelSequencePlayer->Play();
 	}
 }

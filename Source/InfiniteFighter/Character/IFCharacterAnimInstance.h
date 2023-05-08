@@ -9,6 +9,7 @@
 DECLARE_DELEGATE(FOnAxeDrawDelegate);
 DECLARE_DELEGATE(FOnAxeSheatheDelegate);
 DECLARE_DELEGATE(FOnAxeThrowDelegate);
+DECLARE_DELEGATE(FOnExecutionEndDelegate);
 DECLARE_DELEGATE(FOnCharacterMoveDelegate);
 DECLARE_DELEGATE(FOnCharacterStopDelegate);
 
@@ -69,6 +70,8 @@ public:
 	FOnAxeSheatheDelegate OnSheathe;
 
 	FOnAxeThrowDelegate OnThrow;
+
+	FOnExecutionEndDelegate OnExecution;
 
 	FOnCharacterMoveDelegate OnCharacterMove;
 
@@ -197,6 +200,9 @@ private:
 	/* Function when Attacking is finished */
 	UFUNCTION()
 	void AttackStateEnd(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnExecutionEnd(UAnimMontage* Montage, bool bInterrupted);
 
 	/* Make bCanDoNextAction to false */
 	UFUNCTION()

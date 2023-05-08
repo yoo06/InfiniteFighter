@@ -29,15 +29,15 @@ AIFEnemy::AIFEnemy()
 	if (ENEMY_ANIM.Succeeded())
 		GetMesh()->SetAnimInstanceClass(ENEMY_ANIM.Class);
 
+	// setting the point and box for motion warping
 	WarpPoint = CreateDefaultSubobject<USceneComponent>(TEXT("WARP_POINT"));
-	WarpPoint->SetRelativeLocation(FVector(90.0f, 0.0f, 0.0f));
+	WarpPoint->SetRelativeLocation(FVector(75.0f, 0.0f, 0.0f));
 	WarpPoint->SetupAttachment(RootComponent);
 
 	WarpCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WARP_COLLISION"));
-	WarpCollision->SetRelativeLocation(FVector(75.0f, 0.0f, 0.0f));
+	WarpCollision->SetRelativeLocation(FVector(125.0f, 0.0f, 0.0f));
 	WarpCollision->SetBoxExtent(FVector(75.0f, 75.0f, 32.0f));
 	WarpCollision->SetupAttachment(RootComponent);
-
 }
 
 // Called when the game starts or when spawned
@@ -96,8 +96,11 @@ void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Othe
 
 void AIFEnemy::PlayExecuteVictim()
 {
+	// set capsule to ignore pawn so it doesn't go throw floor
 	GetCapsuleComponent()->SetCollisionProfileName("IgnoreOnlyPawn");
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// set mesh to overlap all so it doesn't block anything
 	GetMesh()->SetCollisionProfileName("OverlapAll");
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AnimInstance->PlayExecuteVictimMontage();
