@@ -17,10 +17,5 @@ class INFINITEFIGHTER_API UIFEnemyAnimInstance : public UAnimInstance
 public:
 	UIFEnemyAnimInstance();
 
-	void PlayExecuteVictimMontage();
-
 private:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
-	UAnimMontage* ExecuteVictimMontage;
-
 };

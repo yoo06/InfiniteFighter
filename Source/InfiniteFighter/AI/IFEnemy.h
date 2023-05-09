@@ -29,7 +29,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION()
-	void PlayExecuteVictim();
+	void SetCollisionDead();
+
+	UFUNCTION()
+	void PlayMontage(UAnimMontage* AnimMontage);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class USceneComponent> WarpPoint;

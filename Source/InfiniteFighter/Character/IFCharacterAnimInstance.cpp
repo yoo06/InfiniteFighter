@@ -54,11 +54,6 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (THROW_MONTAGE.Succeeded())
 		ThrowMontage = THROW_MONTAGE.Object;
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> EXECUTE_MONTAGE
-	(TEXT("/Game/InFiniteFighter/Characters/Animation/MatchedCombat/LegSweepStomp_Att_Montage.LegSweepStomp_Att_Montage"));
-	if (EXECUTE_MONTAGE.Succeeded())
-		ExecuteMontage = EXECUTE_MONTAGE.Object;
-
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackward_Root_Montage.DodgeBackward_Root_Montage"));
 	if (DODGE_BACK_MONTAGE.Succeeded())
@@ -314,14 +309,10 @@ void UIFCharacterAnimInstance::PlayDodgeMontage(FVector2D Direction)
     }
 }
 
-void UIFCharacterAnimInstance::PlayExecuteMontage()
-{
-	Montage_Play(ExecuteMontage);
-}
 
 bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()
 {
-	return (Montage_IsActive(DrawMontage) || Montage_IsActive(SheatheMontage) || Montage_IsActive(ExecuteMontage));
+	return (Montage_IsActive(DrawMontage) || Montage_IsActive(SheatheMontage));
 }
 
 void UIFCharacterAnimInstance::DrawStateStart(UAnimMontage* Montage)
@@ -346,10 +337,6 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 	}
 }
 
-void UIFCharacterAnimInstance::OnExecutionEnd(UAnimMontage* Montage, bool bInterrupted)
-{
-	OnExecution.ExecuteIfBound();
-}
 
 void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)
 {

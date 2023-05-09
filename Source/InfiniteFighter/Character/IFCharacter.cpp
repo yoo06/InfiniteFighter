@@ -17,8 +17,7 @@
 #include "Components/CapsuleComponent.h"
 #include "MotionWarpingComponent.h"
 #include "AI/IFEnemy.h"
-#include "LevelSequencePlayer.h"
-#include "LevelSequence.h"
+#include "ExecutionAssetData.h"
 
 
 // Sets default values
@@ -160,10 +159,20 @@ AIFCharacter::AIFCharacter()
 	MovementVector = FVector2D::ZeroVector;
 	Target == nullptr;
 
-	static ConstructorHelpers::FObjectFinder<ULevelSequence>LEVEL_SEQUENCE
-	(TEXT("/Game/InFiniteFighter/Sequencer/ExecuteSequencer.ExecuteSequencer"));
-	if (LEVEL_SEQUENCE.Succeeded())
-		LevelSequence = LEVEL_SEQUENCE.Object;
+	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SLAM_REF
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SlamExecution.SlamExecution"));
+	if (SLAM_REF.Succeeded())
+		ExecutionArray.Add(SLAM_REF.Object);
+
+	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SWEEP_REF
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SweepExecution.SweepExecution"));
+	if (SWEEP_REF.Succeeded())
+		ExecutionArray.Add(SWEEP_REF.Object);
+
+	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>TACKLE_REF
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/TackleExecution.TackleExecution"));
+	if (TACKLE_REF.Succeeded())
+		ExecutionArray.Add(TACKLE_REF.Object);
 }
 
 // Called when the game starts or when spawned
@@ -253,19 +262,12 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnMontageEnded.  AddDynamic (this, &AIFCharacter::RotateDefaultMontage);
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
-	AnimInstance->OnExecution.	   BindLambda([this] { Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation()); });
 
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
-
-	FMovieSceneSequencePlaybackSettings Settings;
-	Settings.bDisableLookAtInput   = true;
-	Settings.bDisableMovementInput = true;
-	Settings.bHideHud			   = true;
-
-	ALevelSequenceActor* SequenceActor;
-
-	LevelSequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), LevelSequence, Settings, SequenceActor);
+	
+	for(const auto& ExecutionAssetData : ExecutionArray)
+		ExecutionAssetData->CreateSequencePlayer();
 }
 
 void AIFCharacter::Move(const FInputActionValue& Value)
@@ -414,14 +416,24 @@ void AIFCharacter::Execute()
 {
 	if (Target != nullptr)
 	{
+		int RandNum = FMath::RandRange(0, 2);
+
+		auto ExecutionAssetData = ExecutionArray[RandNum];
+
 		Sheathe();
 		AnimInstance->SetAxeHolding(false);
 		AnimInstance->SetDrawState(false);
-		AnimInstance->PlayExecuteMontage();
-		Target->PlayExecuteVictim();
+		Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
 		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+
+		AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
+		Target->PlayMontage(ExecutionAssetData->VictimMontage);
+
+		bUseControllerRotationYaw = false;
 		Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
-		LevelSequencePlayer->Play();
+		ExecutionAssetData->Play();
+
+		Target->SetCollisionDead();
 	}
 }
 

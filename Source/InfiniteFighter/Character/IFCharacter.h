@@ -117,10 +117,8 @@ private:
 	FVector2D MovementVector;
 
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<class ULevelSequencePlayer> LevelSequencePlayer;
+	TArray<TObjectPtr<class UExecutionAssetData>> ExecutionArray;
 
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<class ULevelSequence> LevelSequence;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

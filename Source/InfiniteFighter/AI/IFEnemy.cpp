@@ -94,7 +94,7 @@ void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Othe
 	}
 }
 
-void AIFEnemy::PlayExecuteVictim()
+void AIFEnemy::SetCollisionDead()
 {
 	// set capsule to ignore pawn so it doesn't go throw floor
 	GetCapsuleComponent()->SetCollisionProfileName("IgnoreOnlyPawn");
@@ -103,6 +103,13 @@ void AIFEnemy::PlayExecuteVictim()
 	// set mesh to overlap all so it doesn't block anything
 	GetMesh()->SetCollisionProfileName("OverlapAll");
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AnimInstance->PlayExecuteVictimMontage();
+
+	WarpCollision->SetCollisionProfileName("IgnoreOnlyPawn");
+	WarpCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)
+{
+	AnimInstance->Montage_Play(AnimMontage);
 }
 
