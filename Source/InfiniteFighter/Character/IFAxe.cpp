@@ -9,6 +9,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "AI/IFEnemy.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 AIFAxe::AIFAxe()
@@ -217,13 +219,19 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
 	(
 		OutHit,
 		GetActorLocation(),
-		(GetVelocity().GetSafeNormal()) * 55.0f + GetActorLocation(),
+		GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f,
 		ECollisionChannel::ECC_Visibility
 	);
     if (bResult)
     {
 		LodgePosition(OutHit);
     }
+//#if ENABLE_DRAW_DEBUG
+//	if (bResult)
+//		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f, FColor::Green, false, 2.0f);
+//	else
+//		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f, FColor::Red, false, 2.0f);
+//#endif
 }
 
 void AIFAxe::UpdateRotate(float InRotate)
@@ -262,19 +270,18 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 
 	SetActorLocation(AdjustLocation);
 
-	if (InHit.BoneName != NAME_None)
-	{
-		ACharacter* TargetPawn = Cast<ACharacter>(InHit.GetActor());
-		if (TargetPawn)
-		{
-            /*AttachToActor(TargetPawn, FAttachmentTransformRules::SnapToTargetIncludingScale, InHit.BoneName);
+    if (InHit.BoneName != NAME_None)
+    {
+        auto TargetPawn = Cast<AIFEnemy>(InHit.GetActor());
+        if (TargetPawn)
+        {
+            AttachToComponent(TargetPawn->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, InHit.BoneName);
+            TargetPawn->SetCollisionDead();
             TargetPawn->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
             TargetPawn->GetMesh()->SetSimulatePhysics(true);
-            TargetPawn->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-            TargetPawn->GetMesh()->AddImpulseAtLocation((InHit.GetActor()->GetActorLocation() - CameraLocation).GetSafeNormal() * 20000, TargetPawn->GetActorLocation(), InHit.BoneName);*/
-			TargetPawn->GetMesh()->bPauseAnims = true;
-		}
-	};
+            TargetPawn->GetMesh()->AddImpulseAtLocation((InHit.GetActor()->GetActorLocation() - CameraLocation).GetSafeNormal() * 20000, TargetPawn->GetActorLocation(), InHit.BoneName);
+        }
+    };
 }
 
 void AIFAxe::UpdateWiggle(float InWigglePosition)
@@ -324,6 +331,35 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 	// setting the axe location by lerp
 	ReturnLocation = FMath::Lerp(ReturnStartLocation, ReturnRightVector, InSpeed);
 	SetActorLocation(ReturnLocation);
+
+	FHitResult OutHit;
+	bool bResult = GetWorld()->SweepSingleByChannel
+	(
+		OutHit,
+		GetActorLocation(),
+		ReturnLocation,
+		FQuat::Identity,
+		ECollisionChannel::ECC_Visibility,
+		FCollisionShape::MakeSphere(25.0f)
+	);
+
+	if (bResult && OutHit.BoneName != NAME_None)
+	{
+		auto TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
+		if (TargetPawn)
+		{
+			TargetPawn->SetCollisionDead();
+			TargetPawn->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+			TargetPawn->GetMesh()->SetSimulatePhysics(true);
+			TargetPawn->GetMesh()->AddImpulseAtLocation((OutHit.GetActor()->GetActorLocation() - ReturnLocation).GetSafeNormal() * 20000, TargetPawn->GetActorLocation(), OutHit.BoneName);
+		}
+	};
+// #if ENABLE_DRAW_DEBUG
+// 	if(bResult)
+// 		DrawDebugSphere(GetWorld(), (GetActorLocation() + ReturnLocation) / 2, 25.0f, 12, FColor::Green, false, 2.0f);
+// 	else
+// 		DrawDebugSphere(GetWorld(), (GetActorLocation() + ReturnLocation) / 2, 25.0f, 12, FColor::Red, false, 2.0f);
+// #endif
 }
 
 void AIFAxe::UpdateTiltStart(float InValue)

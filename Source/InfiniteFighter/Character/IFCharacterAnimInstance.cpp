@@ -337,7 +337,6 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 	}
 }
 
-
 void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)
 {
 	bCanDoNextAction = false;
@@ -375,6 +374,11 @@ void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 	bCanDoNextAction = true;
 
 	OnThrow.ExecuteIfBound();
+}
+
+void UIFCharacterAnimInstance::AnimNotify_CatchEnd()
+{
+	OnCatchEnd.ExecuteIfBound();
 }
 
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)

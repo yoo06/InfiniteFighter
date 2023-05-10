@@ -11,6 +11,7 @@ DECLARE_DELEGATE(FOnAxeSheatheDelegate);
 DECLARE_DELEGATE(FOnAxeThrowDelegate);
 DECLARE_DELEGATE(FOnCharacterMoveDelegate);
 DECLARE_DELEGATE(FOnCharacterStopDelegate);
+DECLARE_DELEGATE(FOnCatchEndDelegate);
 
 /**
  * 
@@ -60,8 +61,6 @@ public:
 	/* Plays Dodge Montage */
 	void PlayDodgeMontage(FVector2D Direction);
 
-	void PlayExecuteMontage();
-
 	bool IsDrawOrSheatheMontage();
 
 	FOnAxeDrawDelegate OnDraw;
@@ -73,6 +72,8 @@ public:
 	FOnCharacterMoveDelegate OnCharacterMove;
 
 	FOnCharacterStopDelegate OnCharacterStop;
+
+	FOnCatchEndDelegate OnCatchEnd;
 	
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -219,6 +220,9 @@ private:
 
 	UFUNCTION()
 	void AnimNotify_ThrowPoint();
+
+	UFUNCTION()
+	void AnimNotify_CatchEnd();
 
 	/* returns the Montage Section Attack1~3 */
 	const FName GetAttackMontageSection(const int32& Section);
