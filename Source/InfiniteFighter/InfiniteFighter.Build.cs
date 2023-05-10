@@ -8,6 +8,9 @@ public class InfiniteFighter : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput", "AnimGraphRuntime", "CommonInput" });
+		PublicIncludePaths.AddRange(new string[] { "InfiniteFighter" });
+
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput", 
+			"AnimGraphRuntime", "CommonInput", "UMG", "MotionWarping", "LevelSequence", "MovieScene" });
 	}
 }
