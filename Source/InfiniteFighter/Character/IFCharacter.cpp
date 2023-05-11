@@ -417,9 +417,9 @@ void AIFCharacter::Execute()
 {
 	if (Target != nullptr)
 	{
-		int RandNum = FMath::RandRange(0, 2);
+		const int RandNum = FMath::RandRange(0, 2);
 
-		auto ExecutionAssetData = ExecutionArray[RandNum];
+		const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
 		Sheathe();
 		AnimInstance->SetAxeHolding(false);
