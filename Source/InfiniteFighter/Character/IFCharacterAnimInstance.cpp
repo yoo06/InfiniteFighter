@@ -141,7 +141,7 @@ void UIFCharacterAnimInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 
 	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::DrawStateStart);
-	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse);
+	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::CanDoNextActionFalse);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DrawStateEnd);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::AttackStateEnd);
 
@@ -207,12 +207,12 @@ void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 {
 	if (bCanDoNextAction && !bIsAimState)
 	{
-		AttackCombo++;
+		AttackCombo = FMath::Clamp(AttackCombo+1, AttackCombo, 3);
 		if (bIsAxeHolding)
 		{
 			if (!bIsAttackPlaying)
 			{
-				Montage_Play(WeaponWeakAttackMontage, 1.2f);
+				Montage_Play(WeaponWeakAttackMontage, 1.3f);
 				bIsAttackPlaying = true;
 			}
 			else
@@ -332,12 +332,19 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 {
 	if (Montage == UnArmWeakAttackMontage || Montage == WeaponWeakAttackMontage)
 	{
-		AttackCombo = 0;
 		bIsAttackPlaying = false;
+		AttackCombo		 = 0;
+		if (RootMotionMode == ERootMotionMode::IgnoreRootMotion)
+			SetRootMotionMode(ERootMotionMode::RootMotionFromMontagesOnly);
 	}
 }
 
-void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)
+void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse()
+{
+	bCanDoNextAction = false;
+}
+
+void UIFCharacterAnimInstance::CanDoNextActionFalse(UAnimMontage* Montage)
 {
 	bCanDoNextAction = false;
 }

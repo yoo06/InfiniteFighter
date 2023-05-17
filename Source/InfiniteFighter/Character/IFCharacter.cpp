@@ -246,7 +246,7 @@ void AIFCharacter::PostInitializeComponents()
 	FName BackSocket(TEXT("Weapon_Back"));
 	Axe = GetWorld()->SpawnActor<AIFAxe>(FVector::ZeroVector, FRotator::ZeroRotator);
 
-	if (nullptr != Axe)
+	if (::IsValid(Axe))
 		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
 
 	// cast IFCharacterAnimInstance to Character's AnimInstance
@@ -275,7 +275,7 @@ void AIFCharacter::Move(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (::IsValid(Controller))
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -305,7 +305,7 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	// Adding Camera movement
-	if (Controller != nullptr)
+	if (::IsValid(Controller))
 	{
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
@@ -314,9 +314,13 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 
 void AIFCharacter::SprintStart()
 {
-	if (GetCharacterMovement()->MaxWalkSpeed != 600.0f)
+	if (GetCharacterMovement()->MaxWalkSpeed != 600.0f && MovementVector.Y >= 0)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+	}
+	else if(GetCharacterMovement()->MaxWalkSpeed != 400.0f && MovementVector.Y < 0)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 	}
 }
 
@@ -353,7 +357,13 @@ void AIFCharacter::BlockEnd()
 
 void AIFCharacter::WeakAttack()
 {
-		AnimInstance->PlayWeakAttackMontage();
+	if (::IsValid(Target))
+	{
+		bUseControllerRotationYaw = false;
+		AnimInstance->SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
+		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+	}
+	AnimInstance->PlayWeakAttackMontage();
 }
 
 void AIFCharacter::StrongAttack()
@@ -421,15 +431,20 @@ void AIFCharacter::Execute()
 
 		const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
+		// Set Axe to Character's Back
 		Sheathe();
 		AnimInstance->SetAxeHolding(false);
 		AnimInstance->SetDrawState(false);
+
+		// Set MotionWarping position and warp
 		Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
 		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
 
+		// Play the montage
 		AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
 		Target->PlayMontage(ExecutionAssetData->VictimMontage);
 
+		// Reset the camera to center and play sequence
 		bUseControllerRotationYaw = false;
 		Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
 		ExecutionAssetData->Play();
@@ -499,6 +514,7 @@ void AIFCharacter::RecallAxe()
 {
 	if (!AnimInstance->GetRecall() && (Axe->GetAxeState() == EAxeState::Flying || Axe->GetAxeState() == EAxeState::Lodged))
 	{
+		AnimInstance->StopAllMontages(1);
 		AnimInstance->SetRecall(true);
 		AnimInstance->SetCanDoNextAction(false);
 		Axe->Recall();

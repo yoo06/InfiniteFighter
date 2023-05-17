@@ -61,6 +61,7 @@ public:
 	/* Plays Dodge Montage */
 	void PlayDodgeMontage(FVector2D Direction);
 
+	/* Checks the Montage if it is Playing Draw Montage or Sheathe Montage */
 	bool IsDrawOrSheatheMontage();
 
 	FOnAxeDrawDelegate OnDraw;
@@ -97,7 +98,6 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	bool bIsAimState;
 
-	UPROPERTY()
 	bool bIsAttackPlaying;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -196,9 +196,13 @@ private:
 	UFUNCTION()
 	void AttackStateEnd(UAnimMontage* Montage, bool bInterrupted);
 
-	/* Make bCanDoNextAction to false */
+	/* Notify function to Make bCanDoNextAction to false */
 	UFUNCTION()
-	void AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage);
+	void AnimNotify_CanDoNextActionFalse();
+
+	/* Delegate function to make bCanDoNextAction to false */
+	UFUNCTION()
+	void CanDoNextActionFalse(UAnimMontage* Montage);
 	
 	/* Notify to make bCanDoNextAction to true */
 	UFUNCTION()
@@ -212,15 +216,19 @@ private:
 	UFUNCTION()
 	void AnimNotify_DrawWeapon();
 
+	/* notify to Set bUseControllerDesiredRotation to true */
 	UFUNCTION()
 	void AnimNotify_RotateCharacter();
 
+	/* notify to Set bUseControllerDesiredRotation to false */
 	UFUNCTION()
 	void AnimNotify_RotationDefault();
 
+	/* notify for the timing of Axe throw */
 	UFUNCTION()
 	void AnimNotify_ThrowPoint();
 
+	/* notify to set the axe position */
 	UFUNCTION()
 	void AnimNotify_CatchEnd();
 

@@ -16,9 +16,11 @@ class INFINITEFIGHTER_API UExecutionAssetData : public UPrimaryDataAsset
 	
 public:
 	UExecutionAssetData();
-
+	
+	/* Create SequencePlayer for Sequence play */
 	void CreateSequencePlayer();
 
+	/* Function to play the levelSequencerPlayer so the character doesn't need to include header files */
 	void Play();
 
 	UPROPERTY(EditAnywhere, Category = Animation)

@@ -270,9 +270,10 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 
 	SetActorLocation(AdjustLocation);
 
+	// when enemy is hitten
     if (InHit.BoneName != NAME_None)
     {
-        auto TargetPawn = Cast<AIFEnemy>(InHit.GetActor());
+        const auto& TargetPawn = Cast<AIFEnemy>(InHit.GetActor());
         if (TargetPawn)
         {
             AttachToComponent(TargetPawn->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, InHit.BoneName);
@@ -345,13 +346,14 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 
 	if (bResult && OutHit.BoneName != NAME_None)
 	{
-		auto TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
+		const auto& TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
 		if (TargetPawn)
 		{
 			TargetPawn->SetCollisionDead();
 			TargetPawn->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 			TargetPawn->GetMesh()->SetSimulatePhysics(true);
-			TargetPawn->GetMesh()->AddImpulseAtLocation((OutHit.GetActor()->GetActorLocation() - ReturnLocation).GetSafeNormal() * 20000, TargetPawn->GetActorLocation(), OutHit.BoneName);
+			TargetPawn->GetMesh()->AddImpulseAtLocation((OutHit.GetActor()->GetActorLocation() - ReturnLocation).GetSafeNormal() * 20000, 
+				TargetPawn->GetActorLocation(), OutHit.BoneName);
 		}
 	};
 // #if ENABLE_DRAW_DEBUG
