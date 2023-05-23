@@ -10,7 +10,9 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "AI/IFEnemy.h"
-#include "DrawDebugHelpers.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Engine/DamageEvents.h"
+
 
 // Sets default values
 AIFAxe::AIFAxe()
@@ -38,6 +40,16 @@ AIFAxe::AIFAxe()
 		Axe->SetStaticMesh(SK_AXE.Object);
 
 	Axe->SetCollisionProfileName(TEXT("Weapon"));
+
+
+	// setting TrailParticle
+	TrailParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TRAIL_PARTICLE_COMPONENT"));
+	TrailParticleComponent->SetupAttachment(Axe);
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem>TRAIL_PARTICLE
+	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeWeaponTrail.P_AxeWeaponTrail"));
+	if (TRAIL_PARTICLE.Succeeded())
+		TrailParticleComponent->SetTemplate(TRAIL_PARTICLE.Object);
 
 	// setting the projectile
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("PROJECTILE_MOVEMENT"));
@@ -87,6 +99,8 @@ AIFAxe::AIFAxe()
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/RightVectorCurve.RightVectorCurve"));
 	if (RIGHT_VECTOR_CURVE.Succeeded())
 		RightVectorCurveFloat = RIGHT_VECTOR_CURVE.Object;
+
+
 
 	ReturnTiltStartTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TILT_START_TIMELINE"));
 	ReturnTiltEndTimeline   = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TILT_END_TIMELINE"));
@@ -169,9 +183,9 @@ void AIFAxe::Throw()
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	// Get the current forward direction of the Axe
-	FVector  Direction = Character->GetCamera()->GetForwardVector();
-	CameraLocation	   = Character->GetCamera()->GetComponentLocation();
-	CameraRotation	   = Character->GetCamera()->GetComponentRotation();
+	FVector Direction = Character->GetCamera()->GetForwardVector();
+	CameraLocation	  = Character->GetCamera()->GetComponentLocation();
+	CameraRotation	  = Character->GetCamera()->GetComponentRotation();
 
 	SetActorLocationAndRotation((Direction * 200.0f + CameraLocation) - Pivot->GetRelativeLocation(), CameraRotation);
 
@@ -184,10 +198,16 @@ void AIFAxe::Throw()
 
 	AxeRotateTimeline->PlayFromStart();
 	AxeRotateTimeline->SetPlayRate(2.5f);
+
+	TrailParticleComponent->BeginTrails(TEXT("Top"), TEXT("Bottom"), ETrailWidthMode_FromCentre, 1.0f);
+
+	Character->OnAttackEnd.ExecuteIfBound();
 }
 
 void AIFAxe::Recall()
 {
+	Character->OnAttackEnd.ExecuteIfBound();
+
     switch (GetAxeState())
     {
     case EAxeState::Lodged:
@@ -226,12 +246,9 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
     {
 		LodgePosition(OutHit);
     }
-//#if ENABLE_DRAW_DEBUG
-//	if (bResult)
-//		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f, FColor::Green, false, 2.0f);
-//	else
-//		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f, FColor::Red, false, 2.0f);
-//#endif
+// #if ENABLE_DRAW_DEBUG
+// 		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f, bResult? FColor::Green : FColor::Red, false, 2.0f);
+// #endif
 }
 
 void AIFAxe::UpdateRotate(float InRotate)
@@ -243,7 +260,7 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 {
 	SetAxeState(EAxeState::Lodged);
 
-	// Stopping the movement
+	// Stopping the movements
 	ProjectileMovement->Deactivate();
 	AxeGravityTimeline->Stop();
 	AxeRotateTimeline ->Stop();
@@ -273,14 +290,12 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 	// when enemy is hitten
     if (InHit.BoneName != NAME_None)
     {
-        const auto& TargetPawn = Cast<AIFEnemy>(InHit.GetActor());
-        if (TargetPawn)
+		AIFEnemy* TargetPawn = Cast<AIFEnemy>(InHit.GetActor());
+		if (::IsValid(TargetPawn))
         {
             AttachToComponent(TargetPawn->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, InHit.BoneName);
-            TargetPawn->SetCollisionDead();
-            TargetPawn->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-            TargetPawn->GetMesh()->SetSimulatePhysics(true);
-            TargetPawn->GetMesh()->AddImpulseAtLocation((InHit.GetActor()->GetActorLocation() - CameraLocation).GetSafeNormal() * 20000, TargetPawn->GetActorLocation(), InHit.BoneName);
+			FDamageEvent DamageEvent;
+			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
         }
     };
 }
@@ -346,22 +361,16 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 
 	if (bResult && OutHit.BoneName != NAME_None)
 	{
-		const auto& TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
-		if (TargetPawn)
+		AIFEnemy* TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
+		if (::IsValid(TargetPawn))
 		{
-			TargetPawn->SetCollisionDead();
-			TargetPawn->GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-			TargetPawn->GetMesh()->SetSimulatePhysics(true);
-			TargetPawn->GetMesh()->AddImpulseAtLocation((OutHit.GetActor()->GetActorLocation() - ReturnLocation).GetSafeNormal() * 20000, 
-				TargetPawn->GetActorLocation(), OutHit.BoneName);
+			FDamageEvent DamageEvent;
+			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
 		}
 	};
-// #if ENABLE_DRAW_DEBUG
-// 	if(bResult)
-// 		DrawDebugSphere(GetWorld(), (GetActorLocation() + ReturnLocation) / 2, 25.0f, 12, FColor::Green, false, 2.0f);
-// 	else
-// 		DrawDebugSphere(GetWorld(), (GetActorLocation() + ReturnLocation) / 2, 25.0f, 12, FColor::Red, false, 2.0f);
-// #endif
+ // #if ENABLE_DRAW_DEBUG
+ // 		DrawDebugSphere(GetWorld(), (GetActorLocation() + ReturnLocation) / 2, 25.0f, 12, bResult? FColor::Green : FColor::Red, false, 2.0f);
+ // #endif
 }
 
 void AIFAxe::UpdateTiltStart(float InValue)
@@ -381,6 +390,7 @@ void AIFAxe::CatchAxe()
 {
 	SetAxeState(EAxeState::Idle);
 	OnAxeCatch.ExecuteIfBound();
+	TrailParticleComponent->EndTrails();
 }
 
 void AIFAxe::CalculateSpin(float InTimelinePlayRate)

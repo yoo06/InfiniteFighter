@@ -134,6 +134,11 @@ private:
 
 	FOnTimelineEvent OnReturnTimelineFinished;
 
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UParticleSystemComponent> TrailParticleComponent;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UParticleSystemComponent> SparkParticleComponent;
 
 	/* Function for Updating Axe Projectile Gravity */
 	UFUNCTION()

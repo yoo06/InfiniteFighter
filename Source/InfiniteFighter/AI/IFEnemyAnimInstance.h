@@ -17,5 +17,11 @@ class INFINITEFIGHTER_API UIFEnemyAnimInstance : public UAnimInstance
 public:
 	UIFEnemyAnimInstance();
 
+	void React(AActor* Target, AActor* Causer);
 private:
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> ReactBackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> ReactFrontMontage;
 };

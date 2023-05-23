@@ -37,6 +37,10 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class USceneComponent> WarpPoint;
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	FORCEINLINE void SetCanBeAttackedTrue() { bCanBeAttacked = true; }
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
@@ -49,4 +53,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UBoxComponent> WarpCollision;
+
+	UPROPERTY()
+	bool bCanBeAttacked;
+
+	TObjectPtr<class AIFCharacter> PlayerCharacter;
 };

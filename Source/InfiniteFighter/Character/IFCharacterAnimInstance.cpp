@@ -2,8 +2,7 @@
 
 
 #include "IFCharacterAnimInstance.h"
-#include "KismetAnimationLibrary.h"
-
+#include "IFCharacter.h"
 
 UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 {
@@ -54,6 +53,7 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (THROW_MONTAGE.Succeeded())
 		ThrowMontage = THROW_MONTAGE.Object;
 
+	// Dodge Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackward_Root_Montage.DodgeBackward_Root_Montage"));
 	if (DODGE_BACK_MONTAGE.Succeeded())
@@ -94,7 +94,7 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (DODGE_RIGHT_MONTAGE.Succeeded())
 		DodgeRightMontage = DODGE_RIGHT_MONTAGE.Object;
 
-	// asd
+	// Roll Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollBackward_Root_Montage.RollBackward_Root_Montage"));
 	if (ROLL_BACK_MONTAGE.Succeeded())
@@ -168,7 +168,7 @@ void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		CharacterSpeed = Pawn->GetVelocity().Size();
 
 		// get direction
-		CharacterDirection = UKismetAnimationLibrary::CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
+		CharacterDirection = CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
 	}
 }
 
@@ -179,7 +179,6 @@ void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 	{
 		if (bIsAxeHolding)
 		{
-
 			if (bCanDoNextAction)
 			{
 				Montage_Play(SheatheMontage);
@@ -207,6 +206,9 @@ void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 {
 	if (bCanDoNextAction && !bIsAimState)
 	{
+		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
+		Character->OnAttackEnd.ExecuteIfBound();
+
 		AttackCombo = FMath::Clamp(AttackCombo+1, AttackCombo, 3);
 		if (bIsAxeHolding)
 		{
@@ -240,6 +242,9 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 {
 	if (bCanDoNextAction)
 	{
+		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
+		Character->OnAttackEnd.ExecuteIfBound();
+
 		if (bIsAxeHolding)
 		{
 			// Montage_Play(WeaponStrongAttackMontage);
@@ -386,6 +391,11 @@ void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 void UIFCharacterAnimInstance::AnimNotify_CatchEnd()
 {
 	OnCatchEnd.ExecuteIfBound();
+}
+
+void UIFCharacterAnimInstance::AnimNotify_EndParryingPoint()
+{
+	OnParryingEnd.ExecuteIfBound();
 }
 
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)

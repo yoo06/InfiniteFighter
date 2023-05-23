@@ -12,7 +12,7 @@ UExecutionAssetData::UExecutionAssetData()
 
 void UExecutionAssetData::CreateSequencePlayer()
 {
-	if (LevelSequence)
+	if (::IsValid(LevelSequence))
 	{
 		FMovieSceneSequencePlaybackSettings Settings;
 

@@ -6,12 +6,14 @@
 #include "Animation/AnimInstance.h"
 #include "IFCharacterAnimInstance.generated.h"
 
-DECLARE_DELEGATE(FOnAxeDrawDelegate);
-DECLARE_DELEGATE(FOnAxeSheatheDelegate);
-DECLARE_DELEGATE(FOnAxeThrowDelegate);
-DECLARE_DELEGATE(FOnCharacterMoveDelegate);
-DECLARE_DELEGATE(FOnCharacterStopDelegate);
-DECLARE_DELEGATE(FOnCatchEndDelegate);
+DECLARE_DELEGATE(FOnAxeDrawDelegate)
+DECLARE_DELEGATE(FOnAxeSheatheDelegate)
+DECLARE_DELEGATE(FOnAxeThrowDelegate)
+DECLARE_DELEGATE(FOnCharacterMoveDelegate)
+DECLARE_DELEGATE(FOnCharacterStopDelegate)
+DECLARE_DELEGATE(FOnCatchEndDelegate)
+DECLARE_DELEGATE(FOnParryingEndDelegate)
+DECLARE_DELEGATE(FOnAttackEndDelegate)
 
 /**
  * 
@@ -30,6 +32,8 @@ protected:
 
 public:
 	FORCEINLINE void SetAimState(const bool& bInAimState) { bIsAimState = bInAimState; };
+
+	FORCEINLINE const bool GetAimState() const { return bIsAimState; }
 
 	FORCEINLINE void SetBlockState(const bool& bInBlockState) { bIsBlockState = bInBlockState; };
 
@@ -75,6 +79,8 @@ public:
 	FOnCharacterStopDelegate OnCharacterStop;
 
 	FOnCatchEndDelegate OnCatchEnd;
+
+	FOnParryingEndDelegate OnParryingEnd;
 	
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -231,6 +237,9 @@ private:
 	/* notify to set the axe position */
 	UFUNCTION()
 	void AnimNotify_CatchEnd();
+
+	UFUNCTION()
+	void AnimNotify_EndParryingPoint();
 
 	/* returns the Montage Section Attack1~3 */
 	const FName GetAttackMontageSection(const int32& Section);
