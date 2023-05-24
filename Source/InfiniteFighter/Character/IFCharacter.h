@@ -9,7 +9,7 @@
 #include "IFCharacter.generated.h"
 
 DECLARE_DELEGATE(FOnExecuteDelegate);
-DECLARE_DELEGATE(FOnAttackEndDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 
 UCLASS()
 class INFINITEFIGHTER_API AIFCharacter : public ACharacter

@@ -30,6 +30,17 @@ AIFEnemy::AIFEnemy()
 	if (ENEMY_ANIM.Succeeded())
 		GetMesh()->SetAnimInstanceClass(ENEMY_ANIM.Class);
 
+	// setting the weapon
+	Weapon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WEAPON"));
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>WEAPON_MESH
+	(TEXT("/Game/InFiniteFighter/AI/mesh/SM_weapon_Stick.SM_weapon_Stick"));
+	if (WEAPON_MESH.Succeeded())
+		Weapon->SetStaticMesh(WEAPON_MESH.Object);
+
+	Weapon->SetupAttachment(GetMesh(), TEXT("Weapon_Enemy"));
+	Weapon->SetCollisionProfileName(TEXT("Weapon"));
+
 	// setting the point and box for motion warping
 	WarpPoint = CreateDefaultSubobject<USceneComponent>(TEXT("WARP_POINT"));
 	WarpPoint->SetRelativeLocation(FVector(75.0f, 0.0f, 0.0f));
@@ -37,8 +48,8 @@ AIFEnemy::AIFEnemy()
 	WarpPoint->SetupAttachment(RootComponent);
 
 	WarpCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WARP_COLLISION"));
-	WarpCollision->SetRelativeLocation(FVector(300.0f, 0.0f, 0.0f));
-	WarpCollision->SetBoxExtent(FVector(300.0f, 200.0f, 32.0f));
+	WarpCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	WarpCollision->SetBoxExtent(FVector(400.0f, 400.0f, 32.0f));
 	WarpCollision->SetupAttachment(RootComponent);
 
 	bCanBeAttacked = true;
@@ -52,7 +63,7 @@ void AIFEnemy::BeginPlay()
 	PlayerCharacter = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 	ensure(PlayerCharacter);
 
-	PlayerCharacter->OnAttackEnd.BindUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
+	PlayerCharacter->OnAttackEnd.AddUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
 
 	WarpCollision->OnComponentBeginOverlap.AddDynamic(this, &AIFEnemy::OverlapBegin);
 	WarpCollision->OnComponentEndOverlap.  AddDynamic(this, &AIFEnemy::OverlapEnd);
@@ -85,7 +96,7 @@ void AIFEnemy::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 {
 	if (PlayerCharacter == OtherActor)
 	{
-		// If the cast is successful and the player's Target variable is not already set
+		// If the Target variable is not already set
 		if (PlayerCharacter->Target == nullptr)
 		{
 			// Set the player's Target variable to be this enemy
@@ -99,7 +110,7 @@ void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Othe
 {
 	if (PlayerCharacter == OtherActor)
 	{
-		// If the cast is successful and the player's Target variable is set to this
+		// If the Target variable is set to this
 		if (PlayerCharacter->Target == this)
 		{
 			// Set the player's Target variable to be nullptr

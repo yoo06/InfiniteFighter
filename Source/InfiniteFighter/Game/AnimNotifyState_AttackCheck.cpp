@@ -23,7 +23,7 @@ void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, 
             MeshComp->GetSocketLocation(EndSocket),
             FQuat::Identity,
             ECollisionChannel::ECC_Visibility,
-            FCollisionShape::MakeSphere(20.0f),
+            FCollisionShape::MakeSphere(SphereSize),
             Params
         );
         if (bResult)
@@ -38,7 +38,7 @@ void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, 
         }
 
 #if ENABLE_DRAW_DEBUG
-        DrawDebugSphere(MeshOwner->GetWorld(), (MeshComp->GetSocketLocation(StartSocket) + MeshComp->GetSocketLocation(EndSocket)) / 2, 20.0f,
+        DrawDebugSphere(MeshOwner->GetWorld(), (MeshComp->GetSocketLocation(StartSocket) + MeshComp->GetSocketLocation(EndSocket)) / 2, SphereSize,
             12, bResult? FColor::Green : FColor::Red, false, 5.0f);
 #endif
     }

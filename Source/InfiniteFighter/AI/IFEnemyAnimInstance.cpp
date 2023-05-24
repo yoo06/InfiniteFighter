@@ -21,19 +21,14 @@ void UIFEnemyAnimInstance::React(AActor* Target, AActor* Causer)
     float DotProduct = FVector::DotProduct(Causer->GetActorForwardVector(), Target->GetActorForwardVector());
     
     FRotator CurrentRotation = Target->GetActorRotation();
-    UE_LOG(LogTemp, Warning, TEXT("React DotProduct : %f"), DotProduct);
     if (DotProduct < 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("front"));
         Target->SetActorRotation(FRotator(CurrentRotation.Pitch, Causer->GetActorRotation().Yaw + 180, CurrentRotation.Roll));
         Montage_Play(ReactFrontMontage);
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("back"));
         Target->SetActorRotation(FRotator(CurrentRotation.Pitch, Causer->GetActorRotation().Yaw, CurrentRotation.Roll));
         Montage_Play(ReactBackMontage);
     }
 }
-
-

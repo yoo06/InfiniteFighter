@@ -207,7 +207,7 @@ void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 	if (bCanDoNextAction && !bIsAimState)
 	{
 		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
-		Character->OnAttackEnd.ExecuteIfBound();
+		Character->OnAttackEnd.Broadcast();
 
 		AttackCombo = FMath::Clamp(AttackCombo+1, AttackCombo, 3);
 		if (bIsAxeHolding)
@@ -243,7 +243,7 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 	if (bCanDoNextAction)
 	{
 		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
-		Character->OnAttackEnd.ExecuteIfBound();
+		Character->OnAttackEnd.Broadcast();
 
 		if (bIsAxeHolding)
 		{

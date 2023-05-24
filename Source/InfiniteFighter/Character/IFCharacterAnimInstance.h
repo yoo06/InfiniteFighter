@@ -13,7 +13,6 @@ DECLARE_DELEGATE(FOnCharacterMoveDelegate)
 DECLARE_DELEGATE(FOnCharacterStopDelegate)
 DECLARE_DELEGATE(FOnCatchEndDelegate)
 DECLARE_DELEGATE(FOnParryingEndDelegate)
-DECLARE_DELEGATE(FOnAttackEndDelegate)
 
 /**
  * 

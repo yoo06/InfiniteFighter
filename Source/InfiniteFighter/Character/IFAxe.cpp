@@ -100,8 +100,6 @@ AIFAxe::AIFAxe()
 	if (RIGHT_VECTOR_CURVE.Succeeded())
 		RightVectorCurveFloat = RIGHT_VECTOR_CURVE.Object;
 
-
-
 	ReturnTiltStartTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TILT_START_TIMELINE"));
 	ReturnTiltEndTimeline   = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_TILT_END_TIMELINE"));
 	ReturnSpeedTimeline     = CreateDefaultSubobject<UTimelineComponent>(TEXT("RETURN_SPEED_TIMELINE"));
@@ -201,12 +199,12 @@ void AIFAxe::Throw()
 
 	TrailParticleComponent->BeginTrails(TEXT("Top"), TEXT("Bottom"), ETrailWidthMode_FromCentre, 1.0f);
 
-	Character->OnAttackEnd.ExecuteIfBound();
+	Character->OnAttackEnd.Broadcast();
 }
 
 void AIFAxe::Recall()
 {
-	Character->OnAttackEnd.ExecuteIfBound();
+	Character->OnAttackEnd.Broadcast();
 
     switch (GetAxeState())
     {
@@ -242,6 +240,7 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
 		GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f,
 		ECollisionChannel::ECC_Visibility
 	);
+
     if (bResult)
     {
 		LodgePosition(OutHit);

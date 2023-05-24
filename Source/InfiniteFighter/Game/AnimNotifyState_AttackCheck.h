@@ -22,4 +22,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName EndSocket;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SphereSize;
 };

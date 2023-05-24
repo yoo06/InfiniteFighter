@@ -39,9 +39,13 @@ public:
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+	UFUNCTION()
 	FORCEINLINE void SetCanBeAttackedTrue() { bCanBeAttacked = true; }
 
 private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UStaticMeshComponent> Weapon;
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
 

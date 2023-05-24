@@ -429,33 +429,38 @@ void AIFCharacter::Evade()
 
 void AIFCharacter::Execute()
 {
-	if (::IsValid(Target))
-	{
-		const int RandNum = FMath::RandRange(0, 2);
+    if (::IsValid(Target))
+    {
+        float DotProduct = FVector::DotProduct(GetActorForwardVector(), Target->GetActorForwardVector());
 
-		const auto& ExecutionAssetData = ExecutionArray[RandNum];
+        if (DotProduct < 0)
+        {
+            const int RandNum = FMath::RandRange(0, 2);
 
-		// Set Axe to Character's Back
-		Sheathe();
-		AnimInstance->SetAxeHolding(false);
-		AnimInstance->SetDrawState(false);
+            const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
-		// Set MotionWarping position and warp
-		Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
-		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+            // Set Axe to Character's Back
+            Sheathe();
+            AnimInstance->SetAxeHolding(false);
+            AnimInstance->SetDrawState(false);
 
-		// Play the montage
-		AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
-		Target->PlayMontage(ExecutionAssetData->VictimMontage);
+            // Set MotionWarping position and warp
+            Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
+            MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
 
-		// Reset the camera to center and play sequence
-		bUseControllerRotationYaw = false;
-		Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
-		ExecutionAssetData->Play();
+            // Play the montage
+            AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
+            Target->PlayMontage(ExecutionAssetData->VictimMontage);
 
-		Target->SetActorEnableCollision(false);
-		Target = nullptr;
-	}
+            // Reset the camera to center and play sequence
+            bUseControllerRotationYaw = false;
+            Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
+            ExecutionAssetData->Play();
+
+            Target->SetActorEnableCollision(false);
+            Target = nullptr;
+        }
+    }
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)
