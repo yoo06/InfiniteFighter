@@ -2,8 +2,7 @@
 
 
 #include "IFCharacterAnimInstance.h"
-#include "KismetAnimationLibrary.h"
-
+#include "IFCharacter.h"
 
 UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 {
@@ -54,6 +53,7 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (THROW_MONTAGE.Succeeded())
 		ThrowMontage = THROW_MONTAGE.Object;
 
+	// Dodge Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackward_Root_Montage.DodgeBackward_Root_Montage"));
 	if (DODGE_BACK_MONTAGE.Succeeded())
@@ -94,7 +94,7 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (DODGE_RIGHT_MONTAGE.Succeeded())
 		DodgeRightMontage = DODGE_RIGHT_MONTAGE.Object;
 
-	// asd
+	// Roll Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> ROLL_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/RollBackward_Root_Montage.RollBackward_Root_Montage"));
 	if (ROLL_BACK_MONTAGE.Succeeded())
@@ -141,7 +141,7 @@ void UIFCharacterAnimInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 
 	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::DrawStateStart);
-	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse);
+	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::CanDoNextActionFalse);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DrawStateEnd);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::AttackStateEnd);
 
@@ -168,7 +168,7 @@ void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		CharacterSpeed = Pawn->GetVelocity().Size();
 
 		// get direction
-		CharacterDirection = UKismetAnimationLibrary::CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
+		CharacterDirection = CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
 	}
 }
 
@@ -179,7 +179,6 @@ void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 	{
 		if (bIsAxeHolding)
 		{
-
 			if (bCanDoNextAction)
 			{
 				Montage_Play(SheatheMontage);
@@ -207,12 +206,15 @@ void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 {
 	if (bCanDoNextAction && !bIsAimState)
 	{
-		AttackCombo++;
+		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
+		Character->OnAttackEnd.Broadcast();
+
+		AttackCombo = FMath::Clamp(AttackCombo+1, AttackCombo, 3);
 		if (bIsAxeHolding)
 		{
 			if (!bIsAttackPlaying)
 			{
-				Montage_Play(WeaponWeakAttackMontage, 1.2f);
+				Montage_Play(WeaponWeakAttackMontage, 1.3f);
 				bIsAttackPlaying = true;
 			}
 			else
@@ -240,6 +242,9 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 {
 	if (bCanDoNextAction)
 	{
+		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
+		Character->OnAttackEnd.Broadcast();
+
 		if (bIsAxeHolding)
 		{
 			// Montage_Play(WeaponStrongAttackMontage);
@@ -332,12 +337,19 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 {
 	if (Montage == UnArmWeakAttackMontage || Montage == WeaponWeakAttackMontage)
 	{
-		AttackCombo = 0;
 		bIsAttackPlaying = false;
+		AttackCombo		 = 0;
+		if (RootMotionMode == ERootMotionMode::IgnoreRootMotion)
+			SetRootMotionMode(ERootMotionMode::RootMotionFromMontagesOnly);
 	}
 }
 
-void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)
+void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse()
+{
+	bCanDoNextAction = false;
+}
+
+void UIFCharacterAnimInstance::CanDoNextActionFalse(UAnimMontage* Montage)
 {
 	bCanDoNextAction = false;
 }
@@ -379,6 +391,11 @@ void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 void UIFCharacterAnimInstance::AnimNotify_CatchEnd()
 {
 	OnCatchEnd.ExecuteIfBound();
+}
+
+void UIFCharacterAnimInstance::AnimNotify_EndParryingPoint()
+{
+	OnParryingEnd.ExecuteIfBound();
 }
 
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)

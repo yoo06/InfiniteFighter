@@ -9,6 +9,7 @@
 #include "IFCharacter.generated.h"
 
 DECLARE_DELEGATE(FOnExecuteDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 
 UCLASS()
 class INFINITEFIGHTER_API AIFCharacter : public ACharacter
@@ -38,6 +39,8 @@ public:
 	TObjectPtr<class AIFEnemy> Target;
 
 	FOnExecuteDelegate OnExecute;
+
+	FOnAttackEndDelegate OnAttackEnd;
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
@@ -119,6 +122,8 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TArray<TObjectPtr<class UExecutionAssetData>> ExecutionArray;
 
+	UPROPERTY()
+	bool bParryingPoint;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

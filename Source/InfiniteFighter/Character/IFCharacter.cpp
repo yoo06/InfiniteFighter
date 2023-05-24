@@ -193,7 +193,7 @@ void AIFCharacter::BeginPlay()
 	// Clamping Camera angle
 	APlayerCameraManager* PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
-	if (PlayerCameraManager)
+	if (::IsValid(PlayerCameraManager))
 	{
 		PlayerCameraManager->ViewPitchMin = -60.0f;
 		PlayerCameraManager->ViewPitchMax =  60.0f;
@@ -235,7 +235,6 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(EvadeAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Evade);
 		EnhancedInputComponent->BindAction(ExecuteAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::Execute);
 	}
-
 }
 
 void AIFCharacter::PostInitializeComponents()
@@ -246,12 +245,11 @@ void AIFCharacter::PostInitializeComponents()
 	FName BackSocket(TEXT("Weapon_Back"));
 	Axe = GetWorld()->SpawnActor<AIFAxe>(FVector::ZeroVector, FRotator::ZeroRotator);
 
-	if (nullptr != Axe)
+	if (::IsValid(Axe))
 		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
 
 	// cast IFCharacterAnimInstance to Character's AnimInstance
 	AnimInstance = Cast<UIFCharacterAnimInstance>(GetMesh()->GetAnimInstance());
-
 
 	// Binding the Delegates
 	AnimInstance->OnDraw.		   BindUObject(this, &AIFCharacter::Draw);
@@ -263,7 +261,8 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
 	AnimInstance->OnCatchEnd.	   BindLambda([this] { Axe->SetActorRelativeLocation(FVector::ZeroVector); });
-
+	AnimInstance->OnParryingEnd.   BindLambda([this] { bParryingPoint = false; });
+	
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 	
@@ -275,7 +274,7 @@ void AIFCharacter::Move(const FInputActionValue& Value)
 {
 	MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (::IsValid(Controller))
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -305,7 +304,7 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	// Adding Camera movement
-	if (Controller != nullptr)
+	if (::IsValid(Controller))
 	{
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
@@ -314,10 +313,10 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 
 void AIFCharacter::SprintStart()
 {
-	if (GetCharacterMovement()->MaxWalkSpeed != 600.0f)
-	{
+	if     (GetCharacterMovement()->MaxWalkSpeed != 600.0f && MovementVector.Y >= 0)
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-	}
+	else if(GetCharacterMovement()->MaxWalkSpeed != 400.0f && MovementVector.Y <  0)
+		GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 }
 
 void AIFCharacter::SprintEnd()
@@ -342,6 +341,7 @@ void AIFCharacter::BlockStart()
 	{
 		GetCharacterMovement()->MaxWalkSpeed  = 200.0f;
 		AnimInstance->SetBlockState(true);
+		bParryingPoint = true;
 	}
 }
 
@@ -353,7 +353,20 @@ void AIFCharacter::BlockEnd()
 
 void AIFCharacter::WeakAttack()
 {
-		AnimInstance->PlayWeakAttackMontage();
+	if (::IsValid(Target) && !AnimInstance->GetAimState())
+	{
+		float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+
+		if (DotProduct > 0.4)
+		{
+			Target->WarpPoint->SetWorldLocation(Target->GetActorLocation() + (Camera->GetComponentLocation() - Target->GetActorLocation()).GetSafeNormal() * 75);
+			FVector Direction = Target->WarpPoint->GetComponentLocation() - Camera->GetComponentLocation();
+			FRotator TargetRotation = Direction.Rotation();
+			Controller->SetControlRotation(FRotator(Controller->GetControlRotation().Pitch, TargetRotation.Yaw, Controller->GetControlRotation().Roll));
+		}
+	}
+
+	AnimInstance->PlayWeakAttackMontage();
 }
 
 void AIFCharacter::StrongAttack()
@@ -410,32 +423,44 @@ void AIFCharacter::Evade()
 {
 	if (GetVelocity().Size() == 0)
 		MovementVector = FVector2D::ZeroVector;
+
 	AnimInstance->PlayDodgeMontage(MovementVector.GetSafeNormal());
 }
 
 void AIFCharacter::Execute()
 {
-	if (Target != nullptr)
-	{
-		int RandNum = FMath::RandRange(0, 2);
+    if (::IsValid(Target))
+    {
+        float DotProduct = FVector::DotProduct(GetActorForwardVector(), Target->GetActorForwardVector());
 
-		auto ExecutionAssetData = ExecutionArray[RandNum];
+        if (DotProduct < 0)
+        {
+            const int RandNum = FMath::RandRange(0, 2);
 
-		Sheathe();
-		AnimInstance->SetAxeHolding(false);
-		AnimInstance->SetDrawState(false);
-		Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
-		MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+            const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
-		AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
-		Target->PlayMontage(ExecutionAssetData->VictimMontage);
+            // Set Axe to Character's Back
+            Sheathe();
+            AnimInstance->SetAxeHolding(false);
+            AnimInstance->SetDrawState(false);
 
-		bUseControllerRotationYaw = false;
-		Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
-		ExecutionAssetData->Play();
+            // Set MotionWarping position and warp
+            Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
+            MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
 
-		Target->SetCollisionDead();
-	}
+            // Play the montage
+            AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
+            Target->PlayMontage(ExecutionAssetData->VictimMontage);
+
+            // Reset the camera to center and play sequence
+            bUseControllerRotationYaw = false;
+            Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
+            ExecutionAssetData->Play();
+
+            Target->SetActorEnableCollision(false);
+            Target = nullptr;
+        }
+    }
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)
@@ -499,6 +524,7 @@ void AIFCharacter::RecallAxe()
 {
 	if (!AnimInstance->GetRecall() && (Axe->GetAxeState() == EAxeState::Flying || Axe->GetAxeState() == EAxeState::Lodged))
 	{
+		AnimInstance->StopAllMontages(1);
 		AnimInstance->SetRecall(true);
 		AnimInstance->SetCanDoNextAction(false);
 		Axe->Recall();
@@ -514,3 +540,4 @@ void AIFCharacter::CatchAxe()
     FName WeaponSocket(TEXT("Weapon_R"));
     Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 }
+

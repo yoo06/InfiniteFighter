@@ -7,6 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Character/IFCharacter.h"
 #include "IFEnemyAnimInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -29,22 +30,41 @@ AIFEnemy::AIFEnemy()
 	if (ENEMY_ANIM.Succeeded())
 		GetMesh()->SetAnimInstanceClass(ENEMY_ANIM.Class);
 
+	// setting the weapon
+	Weapon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WEAPON"));
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>WEAPON_MESH
+	(TEXT("/Game/InFiniteFighter/AI/mesh/SM_weapon_Stick.SM_weapon_Stick"));
+	if (WEAPON_MESH.Succeeded())
+		Weapon->SetStaticMesh(WEAPON_MESH.Object);
+
+	Weapon->SetupAttachment(GetMesh(), TEXT("Weapon_Enemy"));
+	Weapon->SetCollisionProfileName(TEXT("Weapon"));
+
 	// setting the point and box for motion warping
 	WarpPoint = CreateDefaultSubobject<USceneComponent>(TEXT("WARP_POINT"));
 	WarpPoint->SetRelativeLocation(FVector(75.0f, 0.0f, 0.0f));
+	WarpPoint->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	WarpPoint->SetupAttachment(RootComponent);
 
 	WarpCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WARP_COLLISION"));
-	WarpCollision->SetRelativeLocation(FVector(125.0f, 0.0f, 0.0f));
-	WarpCollision->SetBoxExtent(FVector(75.0f, 75.0f, 32.0f));
+	WarpCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	WarpCollision->SetBoxExtent(FVector(400.0f, 400.0f, 32.0f));
 	WarpCollision->SetupAttachment(RootComponent);
+
+	bCanBeAttacked = true;
 }
 
 // Called when the game starts or when spawned
 void AIFEnemy::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	PlayerCharacter = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+	ensure(PlayerCharacter);
+
+	PlayerCharacter->OnAttackEnd.AddUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
+
 	WarpCollision->OnComponentBeginOverlap.AddDynamic(this, &AIFEnemy::OverlapBegin);
 	WarpCollision->OnComponentEndOverlap.  AddDynamic(this, &AIFEnemy::OverlapEnd);
 }
@@ -60,6 +80,8 @@ void AIFEnemy::PostInitializeComponents()
 void AIFEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// UE_LOG(LogTemp, Warning, TEXT("%s : %d"), *GetName(), bCanBeAttacked);
 }
 
 // Called to bind functionality to input
@@ -72,26 +94,43 @@ void AIFEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AIFEnemy::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	AIFCharacter* PlayerCharacter = Cast<AIFCharacter>(OtherActor);
-
-	// If the cast is successful and the player's Target variable is not already set
-	if (PlayerCharacter != nullptr && PlayerCharacter->Target == nullptr)
+	if (PlayerCharacter == OtherActor)
 	{
-		// Set the player's Target variable to be this enemy
-		PlayerCharacter->Target = this;
+		// If the Target variable is not already set
+		if (PlayerCharacter->Target == nullptr)
+		{
+			// Set the player's Target variable to be this enemy
+			PlayerCharacter->Target = this;
+		}
 	}
+
 }
 
 void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	AIFCharacter* PlayerCharacter = Cast<AIFCharacter>(OtherActor);
-
-	// If the cast is successful and the player's Target variable is set to this
-	if (PlayerCharacter != nullptr && PlayerCharacter->Target == this)
+	if (PlayerCharacter == OtherActor)
 	{
-		// Set the player's Target variable to be nullptr
-		PlayerCharacter->Target = nullptr;
+		// If the Target variable is set to this
+		if (PlayerCharacter->Target == this)
+		{
+			// Set the player's Target variable to be nullptr
+			PlayerCharacter->Target = nullptr;
+		}
 	}
+}
+
+float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (bCanBeAttacked)
+	{
+		AnimInstance->React(this, DamageCauser);
+		bCanBeAttacked = false;
+
+		return DamageAmount;
+	}
+	else return 0.0f;
 }
 
 void AIFEnemy::SetCollisionDead()

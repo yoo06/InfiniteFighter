@@ -12,12 +12,13 @@ UExecutionAssetData::UExecutionAssetData()
 
 void UExecutionAssetData::CreateSequencePlayer()
 {
-	if (LevelSequence)
+	if (::IsValid(LevelSequence))
 	{
 		FMovieSceneSequencePlaybackSettings Settings;
-		Settings.bDisableLookAtInput = true;
+
+		Settings.bDisableLookAtInput   = true;
 		Settings.bDisableMovementInput = true;
-		Settings.bHideHud = true;
+		Settings.bHideHud			   = true;
 
 		ALevelSequenceActor* SequenceActor;
 
