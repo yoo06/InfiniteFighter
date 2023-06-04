@@ -12,7 +12,8 @@
 				"Engine",
 				"CommonInput",
 				"UMG",
-				"EnhancedInput"
+				"EnhancedInput",
+				"AIModule"
 			]
 		}
 	],

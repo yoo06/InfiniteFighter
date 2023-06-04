@@ -8,6 +8,7 @@
 #include "Character/IFCharacter.h"
 #include "IFEnemyAnimInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "IFEnemyController.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -53,6 +54,10 @@ AIFEnemy::AIFEnemy()
 	WarpCollision->SetupAttachment(RootComponent);
 
 	bCanBeAttacked = true;
+
+	// setting Controller
+	AIControllerClass = AIFEnemyController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 // Called when the game starts or when spawned
@@ -80,15 +85,11 @@ void AIFEnemy::PostInitializeComponents()
 void AIFEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	// UE_LOG(LogTemp, Warning, TEXT("%s : %d"), *GetName(), bCanBeAttacked);
 }
 
-// Called to bind functionality to input
-void AIFEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AIFEnemy::Attack()
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	AnimInstance->PlayAttackMontage();
 }
 
 void AIFEnemy::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
@@ -103,7 +104,6 @@ void AIFEnemy::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 			PlayerCharacter->Target = this;
 		}
 	}
-
 }
 
 void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -123,32 +123,46 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 {
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	if (bCanBeAttacked)
+	if (DamageCauser == PlayerCharacter)
 	{
-		AnimInstance->React(this, DamageCauser);
-		bCanBeAttacked = false;
+		if (bCanBeAttacked)
+		{
+			AnimInstance->React(this, DamageCauser);
+			bCanBeAttacked = false;
 
-		return DamageAmount;
+			return DamageAmount;
+		}
 	}
-	else return 0.0f;
+	return 0.0f;
 }
 
-void AIFEnemy::SetCollisionDead()
+void AIFEnemy::ActivateStun()
 {
-	// set capsule to ignore pawn so it doesn't go throw floor
-	GetCapsuleComponent()->SetCollisionProfileName("IgnoreOnlyPawn");
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	// set mesh to overlap all so it doesn't block anything
-	GetMesh()->SetCollisionProfileName("OverlapAll");
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	WarpCollision->SetCollisionProfileName("IgnoreOnlyPawn");
-	WarpCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AnimInstance->StopAllMontages(0);
+	AnimInstance->SetStunState(true);
+	GetWorld()->GetTimerManager().SetTimer(StunTimer, this, &AIFEnemy::DeactivateStun, 5.0f, false);
 }
+
+void AIFEnemy::DeactivateStun()
+{
+	AnimInstance->SetStunState(false);
+}
+
+//void AIFEnemy::SetCollisionDead()
+//{
+//	// set capsule to ignore pawn so it doesn't go throw floor
+//	GetCapsuleComponent()->SetCollisionProfileName("IgnoreOnlyPawn");
+//	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+//
+//	// set mesh to overlap all so it doesn't block anything
+//	GetMesh()->SetCollisionProfileName("OverlapAll");
+//	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+//
+//	WarpCollision->SetCollisionProfileName("IgnoreOnlyPawn");
+//	WarpCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+//}
 
 void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)
 {
 	AnimInstance->Montage_Play(AnimMontage);
 }
-

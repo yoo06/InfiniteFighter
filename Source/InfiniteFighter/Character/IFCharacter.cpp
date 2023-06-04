@@ -173,6 +173,8 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/TackleExecution.TackleExecution"));
 	if (TACKLE_REF.Succeeded())
 		ExecutionArray.Add(TACKLE_REF.Object);
+
+	bCanBeDamaged = true;
 }
 
 // Called when the game starts or when spawned
@@ -261,13 +263,45 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
 	AnimInstance->OnCatchEnd.	   BindLambda([this] { Axe->SetActorRelativeLocation(FVector::ZeroVector); });
-	AnimInstance->OnParryingEnd.   BindLambda([this] { bParryingPoint = false; });
+	AnimInstance->OnParryingEnd.   BindLambda([this] { bIsParryingPoint = false; });
 	
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 	
 	for(const auto& ExecutionAssetData : ExecutionArray)
 		ExecutionAssetData->CreateSequencePlayer();
+}
+
+float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (bCanBeDamaged)
+	{
+		Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+		if (bIsParryingPoint)
+		{
+			auto Enemy = Cast<AIFEnemy>(DamageCauser);
+			if (::IsValid(Enemy))
+			{
+				Enemy->ActivateStun();
+				Parrying();
+				return 0.0f;
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Hit"));
+			bCanBeDamaged = false;
+			GetWorld()->GetTimerManager().SetTimer(DamageTimer, this, &AIFCharacter::DamageReset, 0.1f, false);
+			AnimInstance->React(this, DamageCauser);
+			return DamageAmount;
+		}
+	}
+	return 0.0f;
+}
+
+void AIFCharacter::DamageReset()
+{
+	bCanBeDamaged = true;
 }
 
 void AIFCharacter::Move(const FInputActionValue& Value)
@@ -341,7 +375,7 @@ void AIFCharacter::BlockStart()
 	{
 		GetCharacterMovement()->MaxWalkSpeed  = 200.0f;
 		AnimInstance->SetBlockState(true);
-		bParryingPoint = true;
+		bIsParryingPoint = true;
 	}
 }
 
@@ -353,8 +387,9 @@ void AIFCharacter::BlockEnd()
 
 void AIFCharacter::WeakAttack()
 {
-	if (::IsValid(Target) && !AnimInstance->GetAimState())
+	if (::IsValid(Target))
 	{
+		// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
 		float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal());
 
 		if (DotProduct > 0.4)
@@ -421,9 +456,6 @@ void AIFCharacter::AimEnd()
 
 void AIFCharacter::Evade()
 {
-	if (GetVelocity().Size() == 0)
-		MovementVector = FVector2D::ZeroVector;
-
 	AnimInstance->PlayDodgeMontage(MovementVector.GetSafeNormal());
 }
 
@@ -431,8 +463,10 @@ void AIFCharacter::Execute()
 {
     if (::IsValid(Target))
     {
+		// check if character and enemy are facing(DotProduct on both character's forward vector)
         float DotProduct = FVector::DotProduct(GetActorForwardVector(), Target->GetActorForwardVector());
 
+		// if character and enemy are facing
         if (DotProduct < 0)
         {
             const int RandNum = FMath::RandRange(0, 2);

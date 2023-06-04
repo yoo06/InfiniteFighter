@@ -41,6 +41,8 @@ public:
 	FOnExecuteDelegate OnExecute;
 
 	FOnAttackEndDelegate OnAttackEnd;
+
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
@@ -123,7 +125,13 @@ private:
 	TArray<TObjectPtr<class UExecutionAssetData>> ExecutionArray;
 
 	UPROPERTY()
-	bool bParryingPoint;
+	bool bIsParryingPoint;
+
+	bool bCanBeDamaged;
+
+	FTimerHandle DamageTimer;
+
+	void DamageReset();
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

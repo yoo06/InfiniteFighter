@@ -67,6 +67,8 @@ public:
 	/* Checks the Montage if it is Playing Draw Montage or Sheathe Montage */
 	bool IsDrawOrSheatheMontage();
 
+	void React(AActor* Target, AActor* Causer);
+
 	FOnAxeDrawDelegate OnDraw;
 
 	FOnAxeSheatheDelegate OnSheathe;
@@ -137,6 +139,12 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> ThrowMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> ReactFrontMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> ReactBackMontage;
 
 	// 8direction Dodge Montage
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))

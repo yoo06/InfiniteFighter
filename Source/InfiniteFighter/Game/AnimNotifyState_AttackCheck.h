@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(meta = (DisplayName = "Attack Check"))
 class INFINITEFIGHTER_API UAnimNotifyState_AttackCheck : public UAnimNotifyState
 {
 	GENERATED_BODY()

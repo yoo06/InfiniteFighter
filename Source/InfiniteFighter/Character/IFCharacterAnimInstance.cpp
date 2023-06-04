@@ -3,6 +3,7 @@
 
 #include "IFCharacterAnimInstance.h"
 #include "IFCharacter.h"
+#include "KismetAnimationLibrary.h"
 
 UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 {
@@ -52,6 +53,17 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Combat/Throw_Montage.Throw_Montage"));
 	if (THROW_MONTAGE.Succeeded())
 		ThrowMontage = THROW_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> FRONT_REACT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/AI/Animation/React/hit_body_front_Montage.hit_body_front_Montage"));
+	if (FRONT_REACT_MONTAGE.Succeeded())
+		ReactFrontMontage = FRONT_REACT_MONTAGE.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> BACK_REACT_MONTAGE
+	(TEXT("/Game/InFiniteFighter/AI/Animation/React/hit_body_back_Montage.hit_body_back_Montage"));
+	if (BACK_REACT_MONTAGE.Succeeded())
+		ReactBackMontage = BACK_REACT_MONTAGE.Object;
+
 
 	// Dodge Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
@@ -168,7 +180,7 @@ void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		CharacterSpeed = Pawn->GetVelocity().Size();
 
 		// get direction
-		CharacterDirection = CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
+		CharacterDirection = UKismetAnimationLibrary::CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
 	}
 }
 
@@ -319,6 +331,18 @@ bool UIFCharacterAnimInstance::IsDrawOrSheatheMontage()
 {
 	return (Montage_IsActive(DrawMontage) || Montage_IsActive(SheatheMontage));
 }
+
+void UIFCharacterAnimInstance::React(AActor* Target, AActor* Causer)
+{
+	// check if character and enemy are facing(DotProduct on both character's forward vector)
+	float DotProduct = FVector::DotProduct(Causer->GetActorForwardVector(), Target->GetActorForwardVector());
+
+	FRotator CurrentRotation = Target->GetActorRotation();
+
+	if (DotProduct < 0) Montage_Play(ReactFrontMontage);
+	else				Montage_Play(ReactBackMontage);
+}
+
 
 void UIFCharacterAnimInstance::DrawStateStart(UAnimMontage* Montage)
 {
