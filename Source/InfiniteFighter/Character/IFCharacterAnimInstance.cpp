@@ -9,14 +9,15 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 {
 	CharacterDirection = 0.0f;
 	CharacterSpeed	   = 0.0f;
-	bIsAxeHolding      = false;
+	AttackCombo		   = 0;
 	bCanDoNextAction   = true;
+	bIsAxeHolding      = false;
 	bIsDrawState       = false;
 	bIsAttackPlaying   = false;
 	bIsAimState		   = false;
 	bIsRecalling	   = false;
-	AttackCombo		   = 0;
 	bIsDodging		   = false;
+	bIsBlockState	   = false;
 
 	// setting montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DRAW_MONTAGE
