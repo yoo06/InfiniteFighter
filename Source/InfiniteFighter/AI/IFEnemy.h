@@ -25,11 +25,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	UFUNCTION()
-	void SetCollisionDead();
+	void Attack();
+	
+	void SetDead();
 
 	UFUNCTION()
 	void PlayMontage(UAnimMontage* AnimMontage);
@@ -42,12 +40,16 @@ public:
 	UFUNCTION()
 	FORCEINLINE void SetCanBeAttackedTrue() { bCanBeAttacked = true; }
 
-private:
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<class UStaticMeshComponent> Weapon;
+	void ActivateStun();
+	void DeactivateStun();
+	FORCEINLINE bool GetStunState();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
+
+private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UStaticMeshComponent> Weapon;
 
 	UFUNCTION()
 	void OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -58,8 +60,12 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UBoxComponent> WarpCollision;
 
-	UPROPERTY()
 	bool bCanBeAttacked;
 
 	TObjectPtr<class AIFCharacter> PlayerCharacter;
+
+	FTimerHandle StunTimer;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UParticleSystem> BloodParticle;
 };

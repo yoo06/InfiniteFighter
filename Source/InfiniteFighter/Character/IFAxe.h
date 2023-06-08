@@ -138,7 +138,7 @@ private:
 	TObjectPtr<class UParticleSystemComponent> TrailParticleComponent;
 
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<class UParticleSystemComponent> SparkParticleComponent;
+	TObjectPtr<class UParticleSystem> SparkParticle;
 
 	/* Function for Updating Axe Projectile Gravity */
 	UFUNCTION()

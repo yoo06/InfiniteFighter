@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(meta = (DisplayName = "Attack Check"))
 class INFINITEFIGHTER_API UAnimNotifyState_AttackCheck : public UAnimNotifyState
 {
 	GENERATED_BODY()
@@ -25,4 +25,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SphereSize;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<class UParticleSystem> BloodParticle;
+
 };

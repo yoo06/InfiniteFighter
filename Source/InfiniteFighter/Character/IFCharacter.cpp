@@ -18,6 +18,7 @@
 #include "MotionWarpingComponent.h"
 #include "AI/IFEnemy.h"
 #include "ExecutionAssetData.h"
+#include "Particles/ParticleSystemComponent.h"
 
 
 // Sets default values
@@ -137,6 +138,7 @@ AIFCharacter::AIFCharacter()
 	SpringArm->CameraRotationLagSpeed   = 10.0f;
 	bUseControllerRotationYaw           = false;
 
+	// setting character movement
 	GetCharacterMovement()->MaxWalkSpeed			   = 400.0f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 50.0f;
 	GetCharacterMovement()->RotationRate			   = FRotator(0.0f, 360.0f, 0.0f);
@@ -159,6 +161,7 @@ AIFCharacter::AIFCharacter()
 	MovementVector = FVector2D::ZeroVector;
 	Target == nullptr;
 
+	// setting execution
 	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SLAM_REF
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SlamExecution.SlamExecution"));
 	if (SLAM_REF.Succeeded())
@@ -173,6 +176,14 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/TackleExecution.TackleExecution"));
 	if (TACKLE_REF.Succeeded())
 		ExecutionArray.Add(TACKLE_REF.Object);
+
+	// setting Particle
+	static ConstructorHelpers::FObjectFinder<UParticleSystem>PARRYING_PARTICLE
+	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_Parring_Spark.P_Parring_Spark"));
+	if (PARRYING_PARTICLE.Succeeded())
+		ParryingParticle = PARRYING_PARTICLE.Object;
+
+	bCanBeDamaged = true;
 }
 
 // Called when the game starts or when spawned
@@ -202,7 +213,6 @@ void AIFCharacter::BeginPlay()
 	RotateDefault();
 
 	AimHUD = CreateWidget<UIFAimWidget>(GetWorld()->GetFirstPlayerController(), AimHUDClass);
-
 }
 
 // Called every frame
@@ -261,13 +271,48 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
 	AnimInstance->OnCatchEnd.	   BindLambda([this] { Axe->SetActorRelativeLocation(FVector::ZeroVector); });
-	AnimInstance->OnParryingEnd.   BindLambda([this] { bParryingPoint = false; });
+	AnimInstance->OnParryingEnd.   BindLambda([this] { bIsParryingPoint = false; });
 	
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 	
 	for(const auto& ExecutionAssetData : ExecutionArray)
 		ExecutionAssetData->CreateSequencePlayer();
+}
+
+float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (bCanBeDamaged)
+	{
+		Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+		if (bIsParryingPoint)
+		{
+			auto Enemy = Cast<AIFEnemy>(DamageCauser);
+			if (::IsValid(Enemy))
+			{
+				// set timer
+				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.25f);
+				GetWorld()->GetTimerManager().SetTimer(SlowTimer, [this]() { UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1); }, 0.05f, false);
+				
+				// set the animation and particle
+				Enemy->ActivateStun();
+				Parrying();
+				FVector OffSet = (GetActorForwardVector() * 70) + (GetActorRightVector() * -20) + (GetActorUpVector() * 70);
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParryingParticle, GetActorLocation() + OffSet, FRotator::ZeroRotator, true);
+				Enemy->TakeDamage(0, DamageEvent, GetController(), this);
+
+				return 0.0f;
+			}
+		}
+		else
+		{
+			bCanBeDamaged = false;
+			GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { bCanBeDamaged = true; }, 0.1f, false);
+			AnimInstance->React(this, DamageCauser);
+			return DamageAmount;
+		}
+	}
+	return 0.0f;
 }
 
 void AIFCharacter::Move(const FInputActionValue& Value)
@@ -341,7 +386,7 @@ void AIFCharacter::BlockStart()
 	{
 		GetCharacterMovement()->MaxWalkSpeed  = 200.0f;
 		AnimInstance->SetBlockState(true);
-		bParryingPoint = true;
+		bIsParryingPoint = true;
 	}
 }
 
@@ -353,8 +398,9 @@ void AIFCharacter::BlockEnd()
 
 void AIFCharacter::WeakAttack()
 {
-	if (::IsValid(Target) && !AnimInstance->GetAimState())
+	if (::IsValid(Target))
 	{
+		// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
 		float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal());
 
 		if (DotProduct > 0.4)
@@ -371,6 +417,19 @@ void AIFCharacter::WeakAttack()
 
 void AIFCharacter::StrongAttack()
 {
+	if (::IsValid(Target))
+	{
+		// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
+		float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+
+		if (DotProduct > 0.4)
+		{
+			Target->WarpPoint->SetWorldLocation(Target->GetActorLocation() + (Camera->GetComponentLocation() - Target->GetActorLocation()).GetSafeNormal() * 75);
+			FVector Direction = Target->WarpPoint->GetComponentLocation() - Camera->GetComponentLocation();
+			FRotator TargetRotation = Direction.Rotation();
+			Controller->SetControlRotation(FRotator(Controller->GetControlRotation().Pitch, TargetRotation.Yaw, Controller->GetControlRotation().Roll));
+		}
+	}
 	AnimInstance->PlayStrongAttackMontage();
 }
 
@@ -421,9 +480,6 @@ void AIFCharacter::AimEnd()
 
 void AIFCharacter::Evade()
 {
-	if (GetVelocity().Size() == 0)
-		MovementVector = FVector2D::ZeroVector;
-
 	AnimInstance->PlayDodgeMontage(MovementVector.GetSafeNormal());
 }
 
@@ -431,9 +487,11 @@ void AIFCharacter::Execute()
 {
     if (::IsValid(Target))
     {
+		// check if character and enemy are facing(DotProduct on both character's forward vector)
         float DotProduct = FVector::DotProduct(GetActorForwardVector(), Target->GetActorForwardVector());
 
-        if (DotProduct < 0)
+		// if character and enemy are facing
+        if (DotProduct < 0 && Target->GetStunState())
         {
             const int RandNum = FMath::RandRange(0, 2);
 
@@ -457,7 +515,7 @@ void AIFCharacter::Execute()
             Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
             ExecutionAssetData->Play();
 
-            Target->SetActorEnableCollision(false);
+			Target->SetDead();
             Target = nullptr;
         }
     }
