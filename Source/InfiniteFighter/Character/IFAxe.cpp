@@ -30,17 +30,16 @@ AIFAxe::AIFAxe()
 	Lodge->SetRelativeLocation(FVector(12.0f, 0.0f, 35.0f));
 
 	// Creating the Axe static Mesh
-	Axe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AXE"));
+	Axe = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("AXE"));
 	Axe->SetupAttachment(Lodge);
 	Axe->SetRelativeLocation(FVector(-12.0f, 0.0f, -30.0f));
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh>SK_AXE
-	(TEXT("/Game/InFiniteFighter/Weapon/axe_low_scetchfab.axe_low_scetchfab"));
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh>SK_AXE
+	(TEXT("/Game/InFiniteFighter/Weapon/axe.axe"));
 	if (SK_AXE.Succeeded())
-		Axe->SetStaticMesh(SK_AXE.Object);
+		Axe->SetSkeletalMesh(SK_AXE.Object);
 
 	Axe->SetCollisionProfileName(TEXT("Weapon"));
-
 
 	// Setting Particles
 	TrailParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TRAIL_PARTICLE_COMPONENT"));
@@ -50,6 +49,17 @@ AIFAxe::AIFAxe()
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeWeaponTrail.P_AxeWeaponTrail"));
 	if (TRAIL_PARTICLE.Succeeded())
 		TrailParticleComponent->SetTemplate(TRAIL_PARTICLE.Object);
+
+	CatchParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("CATCH_PARTICLE_COMPONENT"));
+	CatchParticleComponent->SetupAttachment(Axe);
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem>CATCH_PARTICLE
+	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeCatch.P_AxeCatch"));
+	if (CATCH_PARTICLE.Succeeded())
+		CatchParticleComponent->SetTemplate(CATCH_PARTICLE.Object);
+
+	CatchParticleComponent->SetActorParameter(TEXT("VertSurfaceActor"), this);
+	CatchParticleComponent->bAutoActivate = false;
 
 	static ConstructorHelpers::FObjectFinder<UParticleSystem>SPARK_PARTICLE
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_my_spark_burst.P_my_spark_burst"));
@@ -120,6 +130,9 @@ AIFAxe::AIFAxe()
 	ReturnStartCameraRotation = FRotator::ZeroRotator;
 	TiltingRotation			  = FRotator::ZeroRotator;
 	SpinCount				  = -1;
+
+	Params.AddIgnoredActor(this);
+	Params.AddIgnoredActor(Character);
 }
 
 // Called when the game starts or when spawned
@@ -245,7 +258,8 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
 		OutHit,
 		GetActorLocation(),
 		GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f,
-		ECollisionChannel::ECC_Visibility
+		ECollisionChannel::ECC_Visibility,
+		Params
 	);
 
     if (bResult)
@@ -359,6 +373,7 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 	SetActorLocation(ReturnLocation);
 
 	FHitResult OutHit;
+
 	bool bResult = GetWorld()->SweepSingleByChannel
 	(
 		OutHit,
@@ -366,7 +381,8 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 		ReturnLocation,
 		FQuat::Identity,
 		ECollisionChannel::ECC_Visibility,
-		FCollisionShape::MakeSphere(25.0f)
+		FCollisionShape::MakeSphere(25.0f),
+		Params
 	);
 
     if (bResult)
@@ -376,7 +392,6 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
             AIFEnemy* TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
             if (::IsValid(TargetPawn))
             {
-				// UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodParticle, ReturnLocation, FRotator::ZeroRotator, true);
                 FDamageEvent DamageEvent;
                 TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
             }
@@ -410,6 +425,7 @@ void AIFAxe::CatchAxe()
 	SetAxeState(EAxeState::Idle);
 	OnAxeCatch.ExecuteIfBound();
 	TrailParticleComponent->EndTrails();
+	CatchParticleComponent->Activate();
 }
 
 void AIFAxe::CalculateSpin(float InTimelinePlayRate)

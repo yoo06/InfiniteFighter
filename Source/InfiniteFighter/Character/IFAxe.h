@@ -54,7 +54,7 @@ private:
 	TObjectPtr<USceneComponent> Lodge;
 
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
-	TObjectPtr<UStaticMeshComponent> Axe;
+	TObjectPtr<USkeletalMeshComponent> Axe;
 
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	TObjectPtr<class UProjectileMovementComponent> ProjectileMovement;
@@ -138,7 +138,11 @@ private:
 	TObjectPtr<class UParticleSystemComponent> TrailParticleComponent;
 
 	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UParticleSystemComponent> CatchParticleComponent;
+
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystem> SparkParticle;
+
 
 	/* Function for Updating Axe Projectile Gravity */
 	UFUNCTION()
@@ -177,6 +181,8 @@ private:
 
 	UFUNCTION()
 	void SpinStop();
+
+	FCollisionQueryParams Params;
 
 	FVector  ReturnRightVector;
 	FVector  ReturnLocation;

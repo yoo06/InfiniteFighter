@@ -35,6 +35,9 @@ void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, 
                 FDamageEvent DamageEvent;
                 if (HitTarget->TakeDamage(1, DamageEvent, MeshOwner->GetController(), MeshOwner) > 0)
                 {
+                    UGameplayStatics::SetGlobalTimeDilation(MeshOwner->GetWorld(), 0.6f);
+                    MeshOwner->GetWorld()->GetTimerManager().SetTimer(StiffnessTimer, 
+                        [MeshOwner]() {UGameplayStatics::SetGlobalTimeDilation(MeshOwner->GetWorld(), 1.0f); }, 0.1f, false);
                     UGameplayStatics::SpawnEmitterAtLocation(MeshOwner->GetWorld(), BloodParticle, OutHit.ImpactPoint, FRotator::ZeroRotator, true);
                 }
             }
