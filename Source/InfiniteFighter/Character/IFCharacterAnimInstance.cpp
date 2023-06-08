@@ -210,8 +210,12 @@ void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 
 void UIFCharacterAnimInstance::PlayParryingMontage()
 {
-	if(bCanDoNextAction)
+	if (bCanDoNextAction)
+	{
 		Montage_Play(ParryingMontage);
+		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
+		Character->OnAttackEnd.Broadcast();
+	}
 }
 
 void UIFCharacterAnimInstance::PlayWeakAttackMontage()
@@ -359,12 +363,12 @@ void UIFCharacterAnimInstance::DrawStateEnd(UAnimMontage* Montage, bool bInterru
 
 void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage == UnArmWeakAttackMontage || Montage == WeaponWeakAttackMontage)
+	if (Montage == UnArmWeakAttackMontage || Montage == WeaponWeakAttackMontage || Montage == UnArmStrongAttackMontage)
 	{
 		bIsAttackPlaying = false;
 		AttackCombo		 = 0;
-		if (RootMotionMode == ERootMotionMode::IgnoreRootMotion)
-			SetRootMotionMode(ERootMotionMode::RootMotionFromMontagesOnly);
+		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
+		Character->OnAttackEnd.Broadcast();
 	}
 }
 

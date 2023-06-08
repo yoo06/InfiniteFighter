@@ -9,6 +9,7 @@
 #include "IFEnemyAnimInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "IFEnemyController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -58,6 +59,13 @@ AIFEnemy::AIFEnemy()
 	// setting Controller
 	AIControllerClass = AIFEnemyController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	
+	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw   = false;
+	bUseControllerRotationRoll  = false;
 }
 
 // Called when the game starts or when spawned
@@ -67,6 +75,9 @@ void AIFEnemy::BeginPlay()
 
 	PlayerCharacter = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 	ensure(PlayerCharacter);
+
+	AIFEnemyController* AIController = Cast<AIFEnemyController>(GetController());
+	AIController->SetTarget(PlayerCharacter);
 
 	PlayerCharacter->OnAttackEnd.AddUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
 
@@ -129,11 +140,10 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 		{
 			AnimInstance->React(this, DamageCauser);
 			bCanBeAttacked = false;
-
 			return DamageAmount;
 		}
 	}
-	return 0.0f;
+	return DamageAmount;
 }
 
 void AIFEnemy::ActivateStun()
@@ -148,19 +158,17 @@ void AIFEnemy::DeactivateStun()
 	AnimInstance->SetStunState(false);
 }
 
-//void AIFEnemy::SetCollisionDead()
-//{
-//	// set capsule to ignore pawn so it doesn't go throw floor
-//	GetCapsuleComponent()->SetCollisionProfileName("IgnoreOnlyPawn");
-//	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-//
-//	// set mesh to overlap all so it doesn't block anything
-//	GetMesh()->SetCollisionProfileName("OverlapAll");
-//	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-//
-//	WarpCollision->SetCollisionProfileName("IgnoreOnlyPawn");
-//	WarpCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-//}
+bool AIFEnemy::GetStunState()
+{
+	return AnimInstance->GetStunState();
+}
+
+void AIFEnemy::SetDead()
+{
+	SetActorEnableCollision(false);
+	AIFEnemyController* AIController = Cast<AIFEnemyController>(GetController());
+	AIController->StopAI();
+}
 
 void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)
 {

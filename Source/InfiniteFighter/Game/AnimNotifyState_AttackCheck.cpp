@@ -3,6 +3,7 @@
 
 #include "Game/AnimNotifyState_AttackCheck.h"
 #include "Engine/DamageEvents.h"
+#include "Kismet/GameplayStatics.h"
 
 void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime,
     const FAnimNotifyEventReference& EventReference)
@@ -32,7 +33,10 @@ void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, 
             if (::IsValid(HitTarget))
             {
                 FDamageEvent DamageEvent;
-                HitTarget->TakeDamage(1, DamageEvent, MeshOwner->GetController(), MeshOwner);
+                if (HitTarget->TakeDamage(1, DamageEvent, MeshOwner->GetController(), MeshOwner) > 0)
+                {
+                    UGameplayStatics::SpawnEmitterAtLocation(MeshOwner->GetWorld(), BloodParticle, OutHit.ImpactPoint, FRotator::ZeroRotator, true);
+                }
             }
         }
 

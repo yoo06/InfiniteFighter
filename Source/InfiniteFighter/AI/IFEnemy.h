@@ -6,8 +6,6 @@
 #include "GameFramework/Character.h"
 #include "IFEnemy.generated.h"
 
-DECLARE_DELEGATE_OneParam(FOnStunDelegate, bool /* bInStun */)
-
 UCLASS()
 class INFINITEFIGHTER_API AIFEnemy : public ACharacter
 {
@@ -29,6 +27,8 @@ public:
 
 	void Attack();
 	
+	void SetDead();
+
 	UFUNCTION()
 	void PlayMontage(UAnimMontage* AnimMontage);
 
@@ -42,8 +42,7 @@ public:
 
 	void ActivateStun();
 	void DeactivateStun();
-
-	FOnStunDelegate OnStun;
+	FORCEINLINE bool GetStunState();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
@@ -66,4 +65,7 @@ private:
 	TObjectPtr<class AIFCharacter> PlayerCharacter;
 
 	FTimerHandle StunTimer;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UParticleSystem> BloodParticle;
 };

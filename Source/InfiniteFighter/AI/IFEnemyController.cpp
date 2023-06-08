@@ -5,6 +5,9 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+
 
 AIFEnemyController::AIFEnemyController()
 {
@@ -21,7 +24,7 @@ AIFEnemyController::AIFEnemyController()
 
 void AIFEnemyController::RunAI()
 {
-    UBlackboardComponent* BlackBoardPtr = Blackboard.Get();
+    BlackBoardPtr = Blackboard.Get();
     if (UseBlackboard(BBAsset, BlackBoardPtr))
     {
         bool RunResult = RunBehaviorTree(BTAsset);
@@ -36,6 +39,13 @@ void AIFEnemyController::StopAI()
     {
         BTComponent->StopTree();
     }
+}
+
+void AIFEnemyController::SetTarget(APawn* Target)
+{
+    ensure(Target);
+    BlackBoardPtr->SetValueAsObject(TEXT("Target"), Target);
+    UE_LOG(LogTemp, Warning, TEXT("%s"), *Target->GetName());
 }
 
 void AIFEnemyController::OnPossess(APawn* InPawn)

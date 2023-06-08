@@ -18,8 +18,10 @@ public:
 	AIFEnemyController();
 
 	void RunAI();
+
 	void StopAI();
 
+	void SetTarget(APawn* Target);
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 
@@ -29,4 +31,8 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<class UBehaviorTree> BTAsset;
+
+	UPROPERTY()
+	class UBlackboardComponent* BlackBoardPtr;
+
 };

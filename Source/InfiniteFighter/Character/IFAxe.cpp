@@ -42,7 +42,7 @@ AIFAxe::AIFAxe()
 	Axe->SetCollisionProfileName(TEXT("Weapon"));
 
 
-	// setting TrailParticle
+	// Setting Particles
 	TrailParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TRAIL_PARTICLE_COMPONENT"));
 	TrailParticleComponent->SetupAttachment(Axe);
 
@@ -50,6 +50,11 @@ AIFAxe::AIFAxe()
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeWeaponTrail.P_AxeWeaponTrail"));
 	if (TRAIL_PARTICLE.Succeeded())
 		TrailParticleComponent->SetTemplate(TRAIL_PARTICLE.Object);
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem>SPARK_PARTICLE
+	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_my_spark_burst.P_my_spark_burst"));
+	if (SPARK_PARTICLE.Succeeded())
+		SparkParticle = SPARK_PARTICLE.Object;
 
 	// setting the projectile
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("PROJECTILE_MOVEMENT"));
@@ -199,6 +204,8 @@ void AIFAxe::Throw()
 
 	TrailParticleComponent->BeginTrails(TEXT("Top"), TEXT("Bottom"), ETrailWidthMode_FromCentre, 1.0f);
 
+	TrailParticleComponent->ActivateSystem();
+
 	Character->OnAttackEnd.Broadcast();
 }
 
@@ -294,9 +301,13 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
         {
             AttachToComponent(TargetPawn->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, InHit.BoneName);
 			FDamageEvent DamageEvent;
-			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
+			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
         }
-    };
+    }
+	else
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SparkParticle, InHit.ImpactPoint, FRotator(AdjustPitch, 0.0f, AdjustRoll), true);
+	}
 }
 
 void AIFAxe::UpdateWiggle(float InWigglePosition)
@@ -358,15 +369,24 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 		FCollisionShape::MakeSphere(25.0f)
 	);
 
-	if (bResult && OutHit.BoneName != NAME_None)
-	{
-		AIFEnemy* TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
-		if (::IsValid(TargetPawn))
+    if (bResult)
+    {
+        if (OutHit.BoneName != NAME_None)
+        {
+            AIFEnemy* TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
+            if (::IsValid(TargetPawn))
+            {
+				// UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodParticle, ReturnLocation, FRotator::ZeroRotator, true);
+                FDamageEvent DamageEvent;
+                TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
+            }
+        }
+		else
 		{
-			FDamageEvent DamageEvent;
-			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SparkParticle, ReturnLocation, FRotator::ZeroRotator, true);
 		}
-	};
+    }
+
  // #if ENABLE_DRAW_DEBUG
  // 		DrawDebugSphere(GetWorld(), (GetActorLocation() + ReturnLocation) / 2, 25.0f, 12, bResult? FColor::Green : FColor::Red, false, 2.0f);
  // #endif

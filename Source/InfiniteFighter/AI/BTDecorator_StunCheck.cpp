@@ -23,7 +23,5 @@ bool UBTDecorator_StunCheck::CalculateRawConditionValue(UBehaviorTreeComponent& 
 
     bResult = ControllingPawn->AnimInstance->GetStunState();
 
-    UE_LOG(LogTemp, Warning, TEXT("%d"), bResult);
-
     return bResult;
 }

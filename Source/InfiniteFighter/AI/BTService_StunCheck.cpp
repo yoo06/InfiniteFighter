@@ -9,7 +9,7 @@
 
 UBTService_StunCheck::UBTService_StunCheck()
 {
-    Interval = 0.1f;
+    Interval = 0.2f;
 }
 
 void UBTService_StunCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -29,6 +29,4 @@ void UBTService_StunCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	}
 
 	OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("IsStunned"), AIPawn->AnimInstance->GetStunState());
-
-	UE_LOG(LogTemp, Warning, TEXT("%d"), AIPawn->AnimInstance->GetStunState());
 }

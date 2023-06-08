@@ -131,7 +131,11 @@ private:
 
 	FTimerHandle DamageTimer;
 
-	void DamageReset();
+	FTimerHandle SlowTimer;
+
+	UPROPERTY()
+
+	TObjectPtr<class UParticleSystem> ParryingParticle;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);
