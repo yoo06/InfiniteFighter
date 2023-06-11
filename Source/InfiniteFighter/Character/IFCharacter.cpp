@@ -100,7 +100,7 @@ AIFCharacter::AIFCharacter()
 
 	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/AimCurve.AimCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AimCurve.AimCurve"));
 	if (AIM_CURVE_FLOAT.Succeeded())
 		AimCurveFloat = AIM_CURVE_FLOAT.Object;
 
@@ -182,6 +182,12 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_Parring_Spark.P_Parring_Spark"));
 	if (PARRYING_PARTICLE.Succeeded())
 		ParryingParticle = PARRYING_PARTICLE.Object;
+
+	// setting CameraShake
+	static ConstructorHelpers::FClassFinder<UCameraShakeBase>CAMERA_SHAKE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/CameraShake/CS_Catch.CS_Catch_C"));
+	if (CAMERA_SHAKE.Succeeded())
+		CameraShake = CAMERA_SHAKE.Class;
 
 	bCanBeDamaged = true;
 }
@@ -306,6 +312,7 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		}
 		else
 		{
+			SetCameraShake();
 			bCanBeDamaged = false;
 			GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { bCanBeDamaged = true; }, 0.1f, false);
 			AnimInstance->React(this, DamageCauser);
@@ -313,6 +320,21 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		}
 	}
 	return 0.0f;
+}
+
+void AIFCharacter::SetCameraShake()
+{
+	APlayerCameraManager* PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+
+	if (::IsValid(PlayerCameraManager))
+	{
+		PlayerCameraManager->StartCameraShake(CameraShake);
+	}
+}
+
+AActor* AIFCharacter::GetAxe()
+{
+	return Axe;
 }
 
 void AIFCharacter::Move(const FInputActionValue& Value)
@@ -597,5 +619,6 @@ void AIFCharacter::CatchAxe()
     AnimInstance->SetCanDoNextAction(true);
     FName WeaponSocket(TEXT("Weapon_R"));
     Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+	SetCameraShake();
 }
 

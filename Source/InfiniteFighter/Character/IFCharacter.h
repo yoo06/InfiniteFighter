@@ -33,8 +33,14 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	FORCEINLINE const class UCameraComponent* AIFCharacter::GetCamera() const { return Camera; };
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	
+	void SetCameraShake();
 
+	FORCEINLINE const class UCameraComponent* GetCamera() const { return Camera; };
+	
+	AActor* GetAxe();
+	
 	UPROPERTY()
 	TObjectPtr<class AIFEnemy> Target;
 
@@ -42,7 +48,6 @@ public:
 
 	FOnAttackEndDelegate OnAttackEnd;
 
-	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
@@ -134,8 +139,10 @@ private:
 	FTimerHandle SlowTimer;
 
 	UPROPERTY()
-
 	TObjectPtr<class UParticleSystem> ParryingParticle;
+
+	UPROPERTY()
+	TSubclassOf<class UCameraShakeBase> CameraShake;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

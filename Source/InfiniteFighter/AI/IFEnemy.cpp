@@ -138,12 +138,33 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 	{
 		if (bCanBeAttacked)
 		{
+			PlayerCharacter->SetCameraShake();
 			AnimInstance->React(this, DamageCauser);
 			bCanBeAttacked = false;
+
+			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Pause();
+			AnimInstance->Montage_Pause();
+			
+			float StiffFrame = 4.0f / 60.0f;
+
+			GetWorld()->GetTimerManager().SetTimer(StiffTimer, [this]()
+			{
+				PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
+				AnimInstance->Montage_Resume(nullptr);
+			}, 
+			StiffFrame, false);
+			
 			return DamageAmount;
 		}
 	}
-	return DamageAmount;
+	else if (DamageCauser == PlayerCharacter->GetAxe())
+	{
+		AnimInstance->React(this, DamageCauser);
+		bCanBeAttacked = false;
+
+		return DamageAmount;
+	}
+	return 0;
 }
 
 void AIFEnemy::ActivateStun()

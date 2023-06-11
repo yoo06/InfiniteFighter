@@ -72,7 +72,7 @@ AIFAxe::AIFAxe()
 	ProjectileMovement->InitialSpeed	 = 3000.0f;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AXE_GRAVITY_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/AxeGravityCurve.AxeGravityCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AxeGravityCurve.AxeGravityCurve"));
 	if (AXE_GRAVITY_CURVE.Succeeded())
 		AxeGravityCurveFloat = AXE_GRAVITY_CURVE.Object;
 
@@ -80,7 +80,7 @@ AIFAxe::AIFAxe()
 	AxeGravityTimeline->SetTimelineLength(1.2f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AXE_ROTATE_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/AxeRotateCurve.AxeRotateCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AxeRotateCurve.AxeRotateCurve"));
 	if (AXE_ROTATE_CURVE.Succeeded())
 		AxeRotateCurveFloat = AXE_ROTATE_CURVE.Object;
 
@@ -88,7 +88,7 @@ AIFAxe::AIFAxe()
 	AxeGravityTimeline->SetTimelineLength(1.0f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>WIGGLE_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/WiggleCurve.WiggleCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/WiggleCurve.WiggleCurve"));
 	if (WIGGLE_CURVE.Succeeded())
 		WiggleCurveFloat = WIGGLE_CURVE.Object;
 
@@ -96,22 +96,22 @@ AIFAxe::AIFAxe()
 	WiggleTimeline->SetTimelineLength(0.8f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_SPEED_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnSpeedCurve.ReturnSpeedCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/ReturnSpeedCurve.ReturnSpeedCurve"));
 	if (RETURN_SPEED_CURVE.Succeeded())
 		ReturnSpeedCurveFloat = RETURN_SPEED_CURVE.Object;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_TILT_START_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnTiltStartCurve.ReturnTiltStartCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/ReturnTiltStartCurve.ReturnTiltStartCurve"));
 	if (RETURN_TILT_START_CURVE.Succeeded())
 		ReturnTiltStartCurveFloat = RETURN_TILT_START_CURVE.Object;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_TILT_END_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnTiltEndCurve.ReturnTiltEndCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/ReturnTiltEndCurve.ReturnTiltEndCurve"));
 	if (RETURN_TILT_END_CURVE.Succeeded())
 		ReturnTiltEndCurveFloat = RETURN_TILT_END_CURVE.Object;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RIGHT_VECTOR_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/RightVectorCurve.RightVectorCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/RightVectorCurve.RightVectorCurve"));
 	if (RIGHT_VECTOR_CURVE.Succeeded())
 		RightVectorCurveFloat = RIGHT_VECTOR_CURVE.Object;
 
@@ -315,7 +315,7 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
         {
             AttachToComponent(TargetPawn->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, InHit.BoneName);
 			FDamageEvent DamageEvent;
-			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
+			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
         }
     }
 	else
@@ -393,7 +393,7 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
             if (::IsValid(TargetPawn))
             {
                 FDamageEvent DamageEvent;
-                TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
+                TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
             }
         }
 		else

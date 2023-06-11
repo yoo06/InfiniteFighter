@@ -66,6 +66,8 @@ private:
 
 	FTimerHandle StunTimer;
 
+	FTimerHandle StiffTimer;
+
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystem> BloodParticle;
 };
