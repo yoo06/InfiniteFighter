@@ -37,4 +37,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Camera)
 	FVector WarpPoint;
+
+	UPROPERTY(EditAnywhere, Category = Time)
+	float Time;
 };

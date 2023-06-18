@@ -21,12 +21,12 @@ public:
 	FORCEINLINE const bool GetAimTargetUI() const;
 
 private:
-	UPROPERTY()
-	TObjectPtr<class UImage> Aim;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> AimPoint;
 
-	UPROPERTY()
-	TObjectPtr<class UImage> AimTargetL;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> AimOnTargetL;
 
-	UPROPERTY()
-	TObjectPtr<class UImage> AimTargetR;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> AimOnTargetR;
 };

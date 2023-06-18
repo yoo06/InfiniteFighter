@@ -65,6 +65,10 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (BACK_REACT_MONTAGE.Succeeded())
 		ReactBackMontage = BACK_REACT_MONTAGE.Object;
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> BACK_DOWN_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Combat/Block_Back_Down_Montage.Block_Back_Down_Montage"));
+	if (BACK_DOWN_MONTAGE.Succeeded())
+		BackDownMontage = BACK_DOWN_MONTAGE.Object;
 
 	// Dodge Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
@@ -278,6 +282,11 @@ void UIFCharacterAnimInstance::PlayThrowMontage()
 {
 	if(bCanDoNextAction && bIsAxeHolding)
 		Montage_Play(ThrowMontage);
+}
+
+void UIFCharacterAnimInstance::PlayBackDownMontage()
+{
+	Montage_Play(BackDownMontage);
 }
 
 void UIFCharacterAnimInstance::PlayDodgeMontage(FVector2D Direction)

@@ -19,6 +19,7 @@
 #include "AI/IFEnemy.h"
 #include "ExecutionAssetData.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Components/BoxComponent.h"
 
 
 // Sets default values
@@ -110,6 +111,11 @@ AIFCharacter::AIFCharacter()
 		AimHUDClass = AIM_HUD_C.Class;
 
 	AimTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AIM_TIMELINE"));
+
+	WarpCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WARP_COLLISION"));
+	WarpCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	WarpCollision->SetBoxExtent(FVector(400.0f, 400.0f, 32.0f));
+	WarpCollision->SetupAttachment(RootComponent);
 
 	// creating parts for character (springarm, camera)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRING_ARM"));
@@ -277,7 +283,9 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
 	AnimInstance->OnCatchEnd.	   BindLambda([this] { Axe->SetActorRelativeLocation(FVector::ZeroVector); });
-	AnimInstance->OnParryingEnd.   BindLambda([this] { bIsParryingPoint = false; });
+	AnimInstance->OnParryingEnd.   BindLambda([this] { bIsParryingPoint = false; bIsBlocking = true; });
+
+	OnExecutionEnd.AddLambda([this] { bCanBeDamaged = true; });
 	
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -288,9 +296,10 @@ void AIFCharacter::PostInitializeComponents()
 
 float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	
 	if (bCanBeDamaged)
 	{
-		Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 		if (bIsParryingPoint)
 		{
 			auto Enemy = Cast<AIFEnemy>(DamageCauser);
@@ -312,6 +321,15 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		}
 		else
 		{
+			if (bIsBlocking)
+			{
+				float DotProduct = FVector::DotProduct(GetActorForwardVector(), (DamageCauser->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+				if (DotProduct > 0)
+				{
+					AnimInstance->PlayBackDownMontage();
+					return 0.0f;
+				}
+			}
 			SetCameraShake();
 			bCanBeDamaged = false;
 			GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { bCanBeDamaged = true; }, 0.1f, false);
@@ -415,17 +433,29 @@ void AIFCharacter::BlockStart()
 void AIFCharacter::BlockEnd()
 {
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
+	bIsBlocking = false;
 	AnimInstance->SetBlockState(false);
 }
 
 void AIFCharacter::WeakAttack()
 {
-	if (::IsValid(Target))
+	TSet<AActor*> Enemies;
+	GetOverlappingActors(Enemies, AIFEnemy::StaticClass());
+	if (Enemies.Num())
 	{
-		// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
-		float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal());
-
-		if (DotProduct > 0.4)
+		for (const auto& Enemy : Enemies)
+		{
+			// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
+			float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Enemy->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+			
+			if (DotProduct > 0.4)
+			{
+				Target = Cast<AIFEnemy>(Enemy);
+				if(GetDistanceTo(Enemy) <= GetDistanceTo(Target))
+					Target = Cast<AIFEnemy>(Enemy);
+			}
+		}
+		if (::IsValid(Target))
 		{
 			Target->WarpPoint->SetWorldLocation(Target->GetActorLocation() + (Camera->GetComponentLocation() - Target->GetActorLocation()).GetSafeNormal() * 75);
 			FVector Direction = Target->WarpPoint->GetComponentLocation() - Camera->GetComponentLocation();
@@ -433,25 +463,38 @@ void AIFCharacter::WeakAttack()
 			Controller->SetControlRotation(FRotator(Controller->GetControlRotation().Pitch, TargetRotation.Yaw, Controller->GetControlRotation().Roll));
 		}
 	}
-
+	Target = nullptr;
 	AnimInstance->PlayWeakAttackMontage();
 }
 
 void AIFCharacter::StrongAttack()
 {
-	if (::IsValid(Target))
+	TSet<AActor*> Enemies;
+	GetOverlappingActors(Enemies, AIFEnemy::StaticClass());
+	if (Enemies.Num())
 	{
-		// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
-		float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal());
-
-		if (DotProduct > 0.4)
+		for (const auto& Enemy : Enemies)
 		{
+			// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
+			float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Enemy->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+			
+			if (DotProduct > 0.4)
+			{
+				Target = Cast<AIFEnemy>(Enemy);
+				if (GetDistanceTo(Enemy) <= GetDistanceTo(Target))
+					Target = Cast<AIFEnemy>(Enemy);
+			}
+		}
+		if (::IsValid(Target))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s"), *Target->GetName());
 			Target->WarpPoint->SetWorldLocation(Target->GetActorLocation() + (Camera->GetComponentLocation() - Target->GetActorLocation()).GetSafeNormal() * 75);
 			FVector Direction = Target->WarpPoint->GetComponentLocation() - Camera->GetComponentLocation();
 			FRotator TargetRotation = Direction.Rotation();
 			Controller->SetControlRotation(FRotator(Controller->GetControlRotation().Pitch, TargetRotation.Yaw, Controller->GetControlRotation().Roll));
 		}
 	}
+	Target = nullptr;
 	AnimInstance->PlayStrongAttackMontage();
 }
 
@@ -507,40 +550,51 @@ void AIFCharacter::Evade()
 
 void AIFCharacter::Execute()
 {
-    if (::IsValid(Target))
-    {
-		// check if character and enemy are facing(DotProduct on both character's forward vector)
-        float DotProduct = FVector::DotProduct(GetActorForwardVector(), Target->GetActorForwardVector());
+	TSet<AActor*> Enemies;
+	GetOverlappingActors(Enemies, AIFEnemy::StaticClass());
+	if (Enemies.Num())
+	{
+		for (auto& Enemy : Enemies)
+		{
+			// check if character and enemy are facing(DotProduct on both character's forward vector)
+			float DotProduct = FVector::DotProduct(GetActorForwardVector(), Enemy->GetActorForwardVector());
+			auto TargetRef = Cast<AIFEnemy>(Enemy);
+			if (DotProduct < 0 && TargetRef->GetStunState())
+			{
+				Target = TargetRef;
 
-		// if character and enemy are facing
-        if (DotProduct < 0 && Target->GetStunState())
-        {
-            const int RandNum = FMath::RandRange(0, 2);
+				const int RandNum = FMath::RandRange(0, 2);
 
-            const auto& ExecutionAssetData = ExecutionArray[RandNum];
+				const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
-            // Set Axe to Character's Back
-            Sheathe();
-            AnimInstance->SetAxeHolding(false);
-            AnimInstance->SetDrawState(false);
+				// Set Axe to Character's Back
+				Sheathe();
+				AnimInstance->SetAxeHolding(false);
+				AnimInstance->SetDrawState(false);
 
-            // Set MotionWarping position and warp
-            Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
-            MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
+				// Set MotionWarping position and warp
+				Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
+				MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(TEXT("Target"), Target->WarpPoint->GetComponentTransform());
 
-            // Play the montage
-            AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
-            Target->PlayMontage(ExecutionAssetData->VictimMontage);
+				// Play the montage
+				AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
+				Target->PlayMontage(ExecutionAssetData->VictimMontage);
 
-            // Reset the camera to center and play sequence
-            bUseControllerRotationYaw = false;
-            Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
-            ExecutionAssetData->Play();
+				// Reset the camera to center and play sequence
+				bUseControllerRotationYaw = false;
+				Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
+				ExecutionAssetData->Play();
 
-			Target->SetDead();
-            Target = nullptr;
-        }
-    }
+				Target->SetDead();
+				Target = nullptr;
+
+				bCanBeDamaged = false;
+				GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { OnExecutionEnd.Broadcast(); }, ExecutionAssetData->Time, false);
+
+				return;
+			}
+		}
+	}
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)
@@ -621,4 +675,3 @@ void AIFCharacter::CatchAxe()
     Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 	SetCameraShake();
 }
-

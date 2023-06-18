@@ -10,6 +10,7 @@
 
 DECLARE_DELEGATE(FOnExecuteDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnExecutionEndDelegate);
 
 UCLASS()
 class INFINITEFIGHTER_API AIFCharacter : public ACharacter
@@ -47,6 +48,8 @@ public:
 	FOnExecuteDelegate OnExecute;
 
 	FOnAttackEndDelegate OnAttackEnd;
+
+	FOnExecutionEndDelegate OnExecutionEnd;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
@@ -132,6 +135,9 @@ private:
 	UPROPERTY()
 	bool bIsParryingPoint;
 
+	UPROPERTY()
+	bool bIsBlocking;
+
 	bool bCanBeDamaged;
 
 	FTimerHandle DamageTimer;
@@ -143,6 +149,9 @@ private:
 
 	UPROPERTY()
 	TSubclassOf<class UCameraShakeBase> CameraShake;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UBoxComponent> WarpCollision;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

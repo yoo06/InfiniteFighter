@@ -25,28 +25,36 @@ UIFEnemyAnimInstance::UIFEnemyAnimInstance()
     if (ATTACK_MONTAGE.Succeeded())
         AttackMontage = ATTACK_MONTAGE.Object;
 
-    bIsStunned = false;
+    static ConstructorHelpers::FObjectFinder<UAnimMontage>RANGE_ATTACK_MONTAGE
+    (TEXT("/Game/InFiniteFighter/AI/Animation/Combat/atk_01_Montage.atk_01_Montage"));
+    if (RANGE_ATTACK_MONTAGE.Succeeded())
+        RangeAttackMontage = RANGE_ATTACK_MONTAGE.Object;
+
+    // bIsStunned = false;
 }
 
 void UIFEnemyAnimInstance::NativeInitializeAnimation()
 {
     Super::NativeInitializeAnimation();
+
+    Enemy = Cast<AIFEnemy>(TryGetPawnOwner());
+
 }
 
 void UIFEnemyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
     Super::NativeUpdateAnimation(DeltaSeconds);
-
-    auto Pawn = TryGetPawnOwner();
-
-    if (::IsValid(Pawn))
+    
+    if (::IsValid(Enemy))
     {
         // get speed
-        EnemySpeed = Pawn->GetVelocity().Size();
+        EnemySpeed = Enemy->GetVelocity().Size();
 
         // get direction
-        EnemyDirection = UKismetAnimationLibrary::CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
+        EnemyDirection = UKismetAnimationLibrary::CalculateDirection(Enemy->GetVelocity(), Enemy->GetActorRotation());
     }
+
+    // bIsStunned = Pawn->GetStunState();
 }
 void UIFEnemyAnimInstance::React(AActor* Target, AActor* Causer)
 {
@@ -71,4 +79,9 @@ void UIFEnemyAnimInstance::React(AActor* Target, AActor* Causer)
 void UIFEnemyAnimInstance::PlayAttackMontage()
 {
     Montage_Play(AttackMontage);
+}
+
+void UIFEnemyAnimInstance::PlayRangeAttackMontage()
+{
+    Montage_Play(RangeAttackMontage);
 }

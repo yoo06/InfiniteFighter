@@ -43,6 +43,7 @@ public:
 	FORCEINLINE void SetAxeState(EAxeState InAxeState) { CurrentAxeState = InAxeState; }
 
 	FOnAxeCatch OnAxeCatch;
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<USceneComponent> Root;
@@ -142,7 +143,6 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystem> SparkParticle;
-
 
 	/* Function for Updating Axe Projectile Gravity */
 	UFUNCTION()

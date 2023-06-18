@@ -3,7 +3,6 @@
 
 #include "AI/BTService_StunCheck.h"
 #include "IFEnemy.h"
-#include "IFEnemyAnimInstance.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
@@ -28,5 +27,5 @@ void UBTService_StunCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 		return;
 	}
 
-	OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("IsStunned"), AIPawn->AnimInstance->GetStunState());
+	OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("IsStunned"), AIPawn->GetStunState());
 }

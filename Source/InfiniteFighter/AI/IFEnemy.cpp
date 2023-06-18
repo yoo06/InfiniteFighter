@@ -49,11 +49,6 @@ AIFEnemy::AIFEnemy()
 	WarpPoint->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	WarpPoint->SetupAttachment(RootComponent);
 
-	WarpCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WARP_COLLISION"));
-	WarpCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-	WarpCollision->SetBoxExtent(FVector(400.0f, 400.0f, 32.0f));
-	WarpCollision->SetupAttachment(RootComponent);
-
 	bCanBeAttacked = true;
 
 	// setting Controller
@@ -80,9 +75,6 @@ void AIFEnemy::BeginPlay()
 	AIController->SetTarget(PlayerCharacter);
 
 	PlayerCharacter->OnAttackEnd.AddUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
-
-	WarpCollision->OnComponentBeginOverlap.AddDynamic(this, &AIFEnemy::OverlapBegin);
-	WarpCollision->OnComponentEndOverlap.  AddDynamic(this, &AIFEnemy::OverlapEnd);
 }
 
 void AIFEnemy::PostInitializeComponents()
@@ -100,33 +92,13 @@ void AIFEnemy::Tick(float DeltaTime)
 
 void AIFEnemy::Attack()
 {
-	AnimInstance->PlayAttackMontage();
-}
-
-void AIFEnemy::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (PlayerCharacter == OtherActor)
+	if (GetDistanceTo(PlayerCharacter) < 400)
 	{
-		// If the Target variable is not already set
-		if (PlayerCharacter->Target == nullptr)
-		{
-			// Set the player's Target variable to be this enemy
-			PlayerCharacter->Target = this;
-		}
+		AnimInstance->PlayAttackMontage();
 	}
-}
-
-void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (PlayerCharacter == OtherActor)
+	else
 	{
-		// If the Target variable is set to this
-		if (PlayerCharacter->Target == this)
-		{
-			// Set the player's Target variable to be nullptr
-			PlayerCharacter->Target = nullptr;
-		}
+		AnimInstance->PlayRangeAttackMontage();
 	}
 }
 
@@ -138,16 +110,20 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 	{
 		if (bCanBeAttacked)
 		{
+			// taking damage
 			PlayerCharacter->SetCameraShake();
 			AnimInstance->React(this, DamageCauser);
 			bCanBeAttacked = false;
 
+			// pause for hit stop
 			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Pause();
 			AnimInstance->Montage_Pause();
 			
+			// setting the frame (4fps)
 			float StiffFrame = 4.0f / 60.0f;
 
-			GetWorld()->GetTimerManager().SetTimer(StiffTimer, [this]()
+			// using timer to free animation
+			GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [&]()
 			{
 				PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
 				AnimInstance->Montage_Resume(nullptr);
@@ -170,18 +146,18 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 void AIFEnemy::ActivateStun()
 {
 	AnimInstance->StopAllMontages(0);
-	AnimInstance->SetStunState(true);
+	EnemyState.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Enemy.Stunned")));
 	GetWorld()->GetTimerManager().SetTimer(StunTimer, this, &AIFEnemy::DeactivateStun, 5.0f, false);
 }
 
 void AIFEnemy::DeactivateStun()
 {
-	AnimInstance->SetStunState(false);
+	EnemyState.RemoveTag(FGameplayTag::RequestGameplayTag(TEXT("Enemy.Stunned")));
 }
 
 bool AIFEnemy::GetStunState()
 {
-	return AnimInstance->GetStunState();
+	return EnemyState.HasTag(FGameplayTag::RequestGameplayTag(TEXT("Enemy.Stunned")));
 }
 
 void AIFEnemy::SetDead()

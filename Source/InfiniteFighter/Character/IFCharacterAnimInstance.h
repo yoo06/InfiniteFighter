@@ -64,6 +64,8 @@ public:
 	/* Plays Dodge Montage */
 	void PlayDodgeMontage(FVector2D Direction);
 
+	void PlayBackDownMontage();
+
 	/* Checks the Montage if it is Playing Draw Montage or Sheathe Montage */
 	bool IsDrawOrSheatheMontage();
 
@@ -145,6 +147,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> ReactBackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> BackDownMontage;
 
 	// 8direction Dodge Montage
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
