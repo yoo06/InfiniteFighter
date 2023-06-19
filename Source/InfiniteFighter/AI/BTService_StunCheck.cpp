@@ -2,8 +2,9 @@
 
 
 #include "AI/BTService_StunCheck.h"
-#include "IFEnemy.h"
+#include "GameplayTags/EnemyTag.h"
 #include "AIController.h"
+#include "GameplayTagAssetInterface.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTService_StunCheck::UBTService_StunCheck()
@@ -21,11 +22,11 @@ void UBTService_StunCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 		return;
 	}
 
-	AIFEnemy* AIPawn = Cast<AIFEnemy>(ControllingPawn);
+	IGameplayTagAssetInterface* AIPawn = Cast<IGameplayTagAssetInterface>(ControllingPawn);
 	if (nullptr == AIPawn)
 	{
 		return;
 	}
 
-	OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("IsStunned"), AIPawn->GetStunState());
+	OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("IsStunned"), AIPawn->HasMatchingGameplayTag(ENEMY_STUN));
 }

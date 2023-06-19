@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "IFEnemyController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameplayTags/EnemyTag.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -61,6 +62,8 @@ AIFEnemy::AIFEnemy()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
 	bUseControllerRotationRoll  = false;
+
+	StunTag = ENEMY_STUN;
 }
 
 // Called when the game starts or when spawned
@@ -146,18 +149,8 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 void AIFEnemy::ActivateStun()
 {
 	AnimInstance->StopAllMontages(0);
-	EnemyState.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Enemy.Stunned")));
-	GetWorld()->GetTimerManager().SetTimer(StunTimer, this, &AIFEnemy::DeactivateStun, 5.0f, false);
-}
-
-void AIFEnemy::DeactivateStun()
-{
-	EnemyState.RemoveTag(FGameplayTag::RequestGameplayTag(TEXT("Enemy.Stunned")));
-}
-
-bool AIFEnemy::GetStunState()
-{
-	return EnemyState.HasTag(FGameplayTag::RequestGameplayTag(TEXT("Enemy.Stunned")));
+	EnemyState.AddTag(StunTag);
+	GetWorld()->GetTimerManager().SetTimer(StunTimer, [this](){ EnemyState.RemoveTag(StunTag); }, 5.0f, false);
 }
 
 void AIFEnemy::SetDead()

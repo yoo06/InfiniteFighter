@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "GameplayTagContainer.h"
 #include "IFEnemyAnimInstance.generated.h"
 
 /**
@@ -16,9 +17,6 @@ class INFINITEFIGHTER_API UIFEnemyAnimInstance : public UAnimInstance
 	
 public:
 	UIFEnemyAnimInstance();
-
-	// FORCEINLINE void SetStunState(bool bInStunState) { bIsStunned = bInStunState; }
-	// FORCEINLINE bool GetStunState() const { return bIsStunned; }
 
 protected:
 	virtual void NativeInitializeAnimation() override;

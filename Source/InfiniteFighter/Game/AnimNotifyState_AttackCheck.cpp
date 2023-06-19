@@ -42,9 +42,5 @@ void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, 
  //        DrawDebugSphere(MeshOwner->GetWorld(), (MeshComp->GetSocketLocation(StartSocket) + MeshComp->GetSocketLocation(EndSocket)) / 2, SphereSize,
  //            12, bResult? FColor::Green : FColor::Red, false, 5.0f);
  //#endif
- #if ENABLE_DRAW_DEBUG
-         DrawDebugSphere(MeshOwner->GetWorld(), (MeshComp->GetSocketLocation(StartSocket) + MeshComp->GetSocketLocation(EndSocket)) / 2, SphereSize,
-             12, bResult? FColor::Green : FColor::Red, false, 5.0f);
- #endif
     }
 }

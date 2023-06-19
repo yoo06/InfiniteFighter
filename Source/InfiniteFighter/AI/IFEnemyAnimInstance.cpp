@@ -38,7 +38,6 @@ void UIFEnemyAnimInstance::NativeInitializeAnimation()
     Super::NativeInitializeAnimation();
 
     Enemy = Cast<AIFEnemy>(TryGetPawnOwner());
-
 }
 
 void UIFEnemyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)

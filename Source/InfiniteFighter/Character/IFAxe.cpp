@@ -12,6 +12,7 @@
 #include "AI/IFEnemy.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Engine/DamageEvents.h"
+#include "GameplayTags/AxeTag.h"
 
 
 // Sets default values
@@ -133,6 +134,11 @@ AIFAxe::AIFAxe()
 
 	Params.AddIgnoredActor(this);
 	Params.AddIgnoredActor(Character);
+
+	IdleTag		 = AXE_IDLE;
+	FlyingTag	 = AXE_FLYING;
+	LodgedTag	 = AXE_LODGED;
+	ReturningTag = AXE_RETURNING;
 }
 
 // Called when the game starts or when spawned
@@ -144,7 +150,7 @@ void AIFAxe::BeginPlay()
 
 	Character = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
-	SetAxeState(EAxeState::Idle);
+	SetAxeState(IdleTag);
 }
 
 void AIFAxe::PostInitializeComponents()
@@ -194,7 +200,7 @@ void AIFAxe::PostInitializeComponents()
 
 void AIFAxe::Throw()
 {
-	SetAxeState(EAxeState::Flying);
+	SetAxeState(FlyingTag);
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
@@ -226,27 +232,21 @@ void AIFAxe::Recall()
 {
 	Character->OnAttackEnd.Broadcast();
 
-    switch (GetAxeState())
-    {
-    case EAxeState::Lodged:
-    {
-        WiggleTimeline->PlayFromStart();
-        WiggleTimeline->SetPlayRate(2.5f);
-        break;
-    }
-    case EAxeState::Flying:
+	if (HasMatchingGameplayTag(LodgedTag))
+	{
+		WiggleTimeline->PlayFromStart();
+		WiggleTimeline->SetPlayRate(2.5f);
+	}
+	else if(HasMatchingGameplayTag(FlyingTag))
     {
         ProjectileMovement->Deactivate();
         AxeGravityTimeline->Stop();
         AxeRotateTimeline ->Stop();
 		Pivot->SetRelativeRotation(FRotator::ZeroRotator);
 		RecallMovement();
-        break;
-    }
-    default:
-        return;
     }
 }
+
 
 void AIFAxe::UpdateAxeGravity(float InGravity)
 {
@@ -278,7 +278,7 @@ void AIFAxe::UpdateRotate(float InRotate)
 
 void AIFAxe::LodgePosition(const FHitResult& InHit)
 {
-	SetAxeState(EAxeState::Lodged);
+	SetAxeState(LodgedTag);
 
 	// Stopping the movements
 	ProjectileMovement->Deactivate();
@@ -334,7 +334,7 @@ void AIFAxe::UpdateWiggle(float InWigglePosition)
 
 void AIFAxe::RecallMovement()
 {
-	SetAxeState(EAxeState::Returning);
+	SetAxeState(ReturningTag);
 
 	// Initialize components for recall
 	DistanceFromCharacter	  = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
@@ -422,7 +422,8 @@ void AIFAxe::UpdateTiltEnd(float InValue)
 
 void AIFAxe::CatchAxe()
 {
-	SetAxeState(EAxeState::Idle);
+	SetAxeState(IdleTag);
+
 	OnAxeCatch.ExecuteIfBound();
 	TrailParticleComponent->EndTrails();
 	CatchParticleComponent->Activate();

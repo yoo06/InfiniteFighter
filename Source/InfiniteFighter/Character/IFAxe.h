@@ -5,21 +5,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/TimelineComponent.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
 #include "IFAxe.generated.h"
 
 DECLARE_DELEGATE(FOnAxeCatch);
 
-UENUM()
-enum class EAxeState
-{
-	Idle,
-	Flying,
-	Lodged,
-	Returning,
-};
-
 UCLASS()
-class INFINITEFIGHTER_API AIFAxe : public AActor
+class INFINITEFIGHTER_API AIFAxe : public AActor, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 	
@@ -39,10 +32,23 @@ public:
 	UFUNCTION()
 	void Recall();
 
-	FORCEINLINE const EAxeState GetAxeState() const { return CurrentAxeState; }
-	FORCEINLINE void SetAxeState(EAxeState InAxeState) { CurrentAxeState = InAxeState; }
-
 	FOnAxeCatch OnAxeCatch;
+
+	FORCEINLINE void SetAxeState(FGameplayTag InGameplayTag) { AxeState.Reset(); AxeState.AddTag(InGameplayTag); }
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = GameplayTags)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = AxeState; };
+
+
+private:
+	UPROPERTY(BlueprintReadWrite, Category = GameplayTags, meta = (AllowPrivateAccess))
+	FGameplayTagContainer AxeState;
+
+	FGameplayTag IdleTag;
+	FGameplayTag FlyingTag;
+	FGameplayTag LodgedTag;
+	FGameplayTag ReturningTag;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
@@ -66,8 +72,6 @@ private:
 	FVector CameraLocation;
 
 	FRotator CameraRotation;
-
-	EAxeState CurrentAxeState;
 
 	/* Timeline for AxeGravity when thrown */ 
 	UPROPERTY()

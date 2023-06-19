@@ -20,6 +20,9 @@
 #include "ExecutionAssetData.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Components/BoxComponent.h"
+#include "GameplayTags/AxeTag.h"
+#include "GameplayTags/CharacterTag.h"
+#include "GameplayTags/EnemyTag.h"
 
 
 // Sets default values
@@ -411,7 +414,7 @@ void AIFCharacter::SprintEnd()
 
 void AIFCharacter::DrawSheathe()
 {
-	if(Axe->GetAxeState() == EAxeState::Idle)
+	if(Axe->HasMatchingGameplayTag(AXE_IDLE))
 		AnimInstance->PlayDrawSheatheMontage();
 }
 
@@ -450,6 +453,7 @@ void AIFCharacter::WeakAttack()
 			
 			if (DotProduct > 0.4)
 			{
+				// set the closest Enemy to Target
 				Target = Cast<AIFEnemy>(Enemy);
 				if(GetDistanceTo(Enemy) <= GetDistanceTo(Target))
 					Target = Cast<AIFEnemy>(Enemy);
@@ -559,7 +563,7 @@ void AIFCharacter::Execute()
 			// check if character and enemy are facing(DotProduct on both character's forward vector)
 			float DotProduct = FVector::DotProduct(GetActorForwardVector(), Enemy->GetActorForwardVector());
 			auto TargetRef = Cast<AIFEnemy>(Enemy);
-			if (DotProduct < 0 && TargetRef->GetStunState())
+			if (DotProduct < 0 && TargetRef->HasMatchingGameplayTag(ENEMY_STUN))
 			{
 				Target = TargetRef;
 
@@ -656,7 +660,11 @@ void AIFCharacter::RotateDefaultMontage(UAnimMontage* Montage, bool bInterrupted
 
 void AIFCharacter::RecallAxe()
 {
-	if (!AnimInstance->GetRecall() && (Axe->GetAxeState() == EAxeState::Flying || Axe->GetAxeState() == EAxeState::Lodged))
+	FGameplayTagContainer AxeTemp;
+	AxeTemp.AddTag(AXE_FLYING);
+	AxeTemp.AddTag(AXE_LODGED);
+
+	if (!AnimInstance->GetRecall() && (Axe->HasAnyMatchingGameplayTags(AxeTemp)))
 	{
 		AnimInstance->StopAllMontages(1);
 		AnimInstance->SetRecall(true);

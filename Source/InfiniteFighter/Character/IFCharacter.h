@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "Components/TimelineComponent.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
 #include "IFCharacter.generated.h"
 
 DECLARE_DELEGATE(FOnExecuteDelegate);
@@ -13,7 +15,7 @@ DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnExecutionEndDelegate);
 
 UCLASS()
-class INFINITEFIGHTER_API AIFCharacter : public ACharacter
+class INFINITEFIGHTER_API AIFCharacter : public ACharacter, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 
@@ -50,6 +52,12 @@ public:
 	FOnAttackEndDelegate OnAttackEnd;
 
 	FOnExecutionEndDelegate OnExecutionEnd;
+
+	FGameplayTagContainer CharacterState;
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = GameplayTags)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = CharacterState; };
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)

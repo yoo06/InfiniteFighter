@@ -5,10 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
 #include "IFEnemy.generated.h"
 
 UCLASS()
-class INFINITEFIGHTER_API AIFEnemy : public ACharacter
+class INFINITEFIGHTER_API AIFEnemy : public ACharacter, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 
@@ -42,14 +43,22 @@ public:
 	FORCEINLINE void SetCanBeAttackedTrue() { bCanBeAttacked = true; }
 
 	void ActivateStun();
-	void DeactivateStun();
-	FORCEINLINE bool GetStunState();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
 
-	UPROPERTY(BlueprintReadWrite, Category = GameplyTags)
+public:
+	// GameplayTag
+	UPROPERTY(BlueprintReadOnly, Category = GameplayTags)
 	FGameplayTagContainer EnemyState;
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = GameplayTags)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = EnemyState; };
+
+private:
+	FGameplayTag StunTag;
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UStaticMeshComponent> Weapon;
