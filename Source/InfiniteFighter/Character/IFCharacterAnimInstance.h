@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
 #include "IFCharacterAnimInstance.generated.h"
 
 DECLARE_DELEGATE(FOnAxeDrawDelegate)
@@ -18,7 +20,7 @@ DECLARE_DELEGATE(FOnParryingEndDelegate)
  * 
  */
 UCLASS()
-class INFINITEFIGHTER_API UIFCharacterAnimInstance : public UAnimInstance
+class INFINITEFIGHTER_API UIFCharacterAnimInstance : public UAnimInstance, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 public:
@@ -29,22 +31,15 @@ protected:
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+protected:
+	UFUNCTION(BlueprintCallable, Category = GameplayTags)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = AnimState; };
+
 public:
-	FORCEINLINE void SetAimState(const bool& bInAimState) { bIsAimState = bInAimState; };
-
-	FORCEINLINE const bool GetAimState() const { return bIsAimState; }
-
-	FORCEINLINE void SetBlockState(const bool& bInBlockState) { bIsBlockState = bInBlockState; };
-
-	FORCEINLINE void SetAxeHolding(const bool& bInAxe) { bIsAxeHolding = bInAxe; };
-
-	FORCEINLINE void SetDrawState(const bool& bInDrawState) { bIsDrawState = bInDrawState; };
+	UPROPERTY(BlueprintReadWrite, Category = GameplayTags, meta = (AllowPrivateAccess))
+	FGameplayTagContainer AnimState;
 
 	FORCEINLINE void SetCanDoNextAction(const bool& bInNextAction) { bCanDoNextAction = bInNextAction; };
-
-	FORCEINLINE const bool GetRecall() const { return bIsRecalling; };
-
-	FORCEINLINE void SetRecall(const bool& bInRecall) { bIsRecalling = bInRecall; };
 
 	/* Plays Draw and Sheathe Montage */
 	void PlayDrawSheatheMontage();
@@ -87,33 +82,30 @@ public:
 	
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<class AIFCharacter> CharacterRef;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	float CharacterDirection;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	float CharacterSpeed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool bIsAxeHolding;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	bool bCanDoNextAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool bIsDrawState;
+	FGameplayTag AxeHoldingState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool bIsBlockState;
+	FGameplayTag DrawState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool bIsAimState;
+	FGameplayTag BlockState;
 
-	bool bIsAttackPlaying;
+	FGameplayTag AimState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool bIsRecalling;
+	FGameplayTag AttackState;
 
-	UPROPERTY()
-	bool bIsDodging;
+	FGameplayTag RecallState;
+
+	FGameplayTag DodgeState;
 
 	UPROPERTY()
 	int32 AttackCombo;

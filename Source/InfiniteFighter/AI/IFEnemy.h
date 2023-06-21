@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
+#include "Components/TimelineComponent.h"
 #include "IFEnemy.generated.h"
 
 UCLASS()
@@ -73,4 +74,23 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystem> BloodParticle;
+
+	TObjectPtr<class UMaterialInstanceDynamic> MIDCharacter;
+	TObjectPtr<class UMaterialInstanceDynamic> MIDWeapon;
+
+	UPROPERTY()
+	TObjectPtr<UTimelineComponent> DissolveTimeline;
+
+	UPROPERTY()
+	TObjectPtr<UCurveFloat> DissolveCurveFloat;
+
+	FOnTimelineFloat OnDissolveTimelineFunction;
+
+	FOnTimelineEvent OnDissolveTimelineFinished;
+
+	UFUNCTION()
+	void UpdateDissolve(float InTimeline);
+
+	UFUNCTION()
+	void SetDestroy();
 };

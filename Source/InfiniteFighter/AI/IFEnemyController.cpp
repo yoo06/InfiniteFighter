@@ -45,7 +45,6 @@ void AIFEnemyController::SetTarget(APawn* Target)
 {
     ensure(Target);
     BlackBoardPtr->SetValueAsObject(TEXT("Target"), Target);
-    UE_LOG(LogTemp, Warning, TEXT("%s"), *Target->GetName());
 }
 
 void AIFEnemyController::OnPossess(APawn* InPawn)

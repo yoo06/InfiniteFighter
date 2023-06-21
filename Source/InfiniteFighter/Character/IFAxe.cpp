@@ -422,6 +422,7 @@ void AIFAxe::UpdateTiltEnd(float InValue)
 
 void AIFAxe::CatchAxe()
 {
+	
 	SetAxeState(IdleTag);
 
 	OnAxeCatch.ExecuteIfBound();

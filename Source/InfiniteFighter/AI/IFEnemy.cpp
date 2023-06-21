@@ -52,6 +52,15 @@ AIFEnemy::AIFEnemy()
 
 	bCanBeAttacked = true;
 
+	// setting Timeline for Dissolve effect
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DISSOLVE_TIMELINE"));
+	DissolveTimeline->SetTimelineLength(1.0f);
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>DISSOLVE_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/DissolveCurve.DissolveCurve"));
+	if (DISSOLVE_CURVE.Succeeded())
+		DissolveCurveFloat = DISSOLVE_CURVE.Object;
+
 	// setting Controller
 	AIControllerClass = AIFEnemyController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
@@ -85,6 +94,31 @@ void AIFEnemy::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	AnimInstance = Cast<UIFEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+
+	OnDissolveTimelineFunction.BindDynamic(this, &AIFEnemy::UpdateDissolve);
+	DissolveTimeline->AddInterpFloat(DissolveCurveFloat, OnDissolveTimelineFunction);
+
+	OnDissolveTimelineFinished.BindDynamic(this, &AIFEnemy::SetDestroy);
+	DissolveTimeline->SetTimelineFinishedFunc(OnDissolveTimelineFinished);
+
+	DissolveTimeline->SetPlayRate(0.4f);
+
+	// setting mesh material
+	UMaterialInterface* NewMaterial = LoadObject<UMaterialInterface>
+		(nullptr, TEXT("/Game/InFiniteFighter/Characters/Mannequin_UE4/Materials/M_Mannequin_Inst.M_Mannequin_Inst"));
+
+	MIDCharacter = UMaterialInstanceDynamic::Create(NewMaterial, nullptr);
+
+	GetMesh()->SetMaterial(0, MIDCharacter);
+	GetMesh()->SetMaterial(1, MIDCharacter);
+
+	// setting weapon material
+	UMaterialInterface* NewWeapon = LoadObject<UMaterialInterface>
+		(nullptr, TEXT("/Game/InFiniteFighter/AI/Materials/weapon_2_Inst.weapon_2_Inst"));
+
+	MIDWeapon = UMaterialInstanceDynamic::Create(NewWeapon, nullptr);
+
+	Weapon->SetMaterial(0, MIDWeapon);
 }
 
 // Called every frame
@@ -153,11 +187,24 @@ void AIFEnemy::ActivateStun()
 	GetWorld()->GetTimerManager().SetTimer(StunTimer, [this](){ EnemyState.RemoveTag(StunTag); }, 5.0f, false);
 }
 
+void AIFEnemy::UpdateDissolve(float InTimeline)
+{
+	MIDCharacter->SetScalarParameterValue(TEXT("Appearance"), InTimeline);
+	MIDWeapon	->SetScalarParameterValue(TEXT("Appearance"), InTimeline);
+}
+
+void AIFEnemy::SetDestroy()
+{
+	Destroy();
+}
+
 void AIFEnemy::SetDead()
 {
 	SetActorEnableCollision(false);
 	AIFEnemyController* AIController = Cast<AIFEnemyController>(GetController());
 	AIController->StopAI();
+	FTimerHandle DeadTimer;
+	GetWorld()->GetTimerManager().SetTimer(DeadTimer, [this]() { DissolveTimeline->Play(); }, 6.0f, false);
 }
 
 void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)

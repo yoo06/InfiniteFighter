@@ -22,6 +22,7 @@
 #include "Components/BoxComponent.h"
 #include "GameplayTags/AxeTag.h"
 #include "GameplayTags/CharacterTag.h"
+#include "GameplayTags/CharacterAnimationTag.h"
 #include "GameplayTags/EnemyTag.h"
 
 
@@ -56,11 +57,6 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Draw_Sheathe.IA_Draw_Sheathe"));
 	if (IA_DRAW_SHEATHE.Succeeded())
 		DrawSheatheAction = IA_DRAW_SHEATHE.Object;
-
-	static ConstructorHelpers::FObjectFinder<UInputAction>IA_PARRYING
-	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Parrying.IA_Parrying"));
-	if (IA_PARRYING.Succeeded())
-		ParryingAction = IA_PARRYING.Object;
 
 	static ConstructorHelpers::FObjectFinder<UInputAction>IA_BLOCK
 	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Block.IA_Block"));
@@ -198,7 +194,12 @@ AIFCharacter::AIFCharacter()
 	if (CAMERA_SHAKE.Succeeded())
 		CameraShake = CAMERA_SHAKE.Class;
 
-	bCanBeDamaged = true;
+	IdleState	  = CHARACTER_IDLE;
+	AimState	  = CHARACTER_AIM;
+	SprintState   = CHARACTER_SPRINT;
+	DamagedState  = CHARACTER_DAMAGED;
+	ParryingState = CHARACTER_PARRYING;
+	BlockingState = CHARACTER_BLOCKING;
 }
 
 // Called when the game starts or when spawned
@@ -228,6 +229,9 @@ void AIFCharacter::BeginPlay()
 	RotateDefault();
 
 	AimHUD = CreateWidget<UIFAimWidget>(GetWorld()->GetFirstPlayerController(), AimHUDClass);
+
+	CharacterState.AddTag(IdleState);
+	CharacterState.AddTag(DamagedState);
 }
 
 // Called every frame
@@ -248,7 +252,6 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(SprintAction,       ETriggerEvent::Triggered, this, &AIFCharacter::SprintStart);
 		EnhancedInputComponent->BindAction(SprintAction,       ETriggerEvent::Completed, this, &AIFCharacter::SprintEnd);
 		EnhancedInputComponent->BindAction(DrawSheatheAction,  ETriggerEvent::Triggered, this, &AIFCharacter::DrawSheathe);
-		EnhancedInputComponent->BindAction(ParryingAction,     ETriggerEvent::Triggered, this, &AIFCharacter::Parrying);
 		EnhancedInputComponent->BindAction(BlockAction,        ETriggerEvent::Triggered, this, &AIFCharacter::BlockStart);
 		EnhancedInputComponent->BindAction(BlockAction,        ETriggerEvent::Completed, this, &AIFCharacter::BlockEnd);
 		EnhancedInputComponent->BindAction(WeakAttackAction,   ETriggerEvent::Triggered, this, &AIFCharacter::WeakAttack);
@@ -286,9 +289,13 @@ void AIFCharacter::PostInitializeComponents()
 	AnimInstance->OnThrow.		   BindUObject(Axe,  &AIFAxe::      Throw);
 	Axe			->OnAxeCatch.	   BindUObject(this, &AIFCharacter::CatchAxe);
 	AnimInstance->OnCatchEnd.	   BindLambda([this] { Axe->SetActorRelativeLocation(FVector::ZeroVector); });
-	AnimInstance->OnParryingEnd.   BindLambda([this] { bIsParryingPoint = false; bIsBlocking = true; });
+	AnimInstance->OnParryingEnd.   BindLambda([this] 
+	{ 
+		CharacterState.RemoveTag(ParryingState);
+		CharacterState.AddTag(BlockingState);
+	});
 
-	OnExecutionEnd.AddLambda([this] { bCanBeDamaged = true; });
+	OnExecutionEnd.AddLambda([this] { CharacterState.AddTag(DamagedState); });
 	
 	OnAimTimelineFunction.BindDynamic(this, &AIFCharacter::UpdateAimCamera);
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
@@ -301,9 +308,9 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 {
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	
-	if (bCanBeDamaged)
+	if (CharacterState.HasTagExact(DamagedState))
 	{
-		if (bIsParryingPoint)
+		if (CharacterState.HasTagExact(ParryingState))
 		{
 			auto Enemy = Cast<AIFEnemy>(DamageCauser);
 			if (::IsValid(Enemy))
@@ -324,7 +331,7 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 		}
 		else
 		{
-			if (bIsBlocking)
+			if (CharacterState.HasTagExact(BlockingState))
 			{
 				float DotProduct = FVector::DotProduct(GetActorForwardVector(), (DamageCauser->GetActorLocation() - GetActorLocation()).GetSafeNormal());
 				if (DotProduct > 0)
@@ -334,8 +341,8 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 				}
 			}
 			SetCameraShake();
-			bCanBeDamaged = false;
-			GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { bCanBeDamaged = true; }, 0.1f, false);
+			CharacterState.RemoveTag(DamagedState);
+			GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { CharacterState.AddTag(DamagedState); }, 0.1f, false);
 			AnimInstance->React(this, DamageCauser);
 			return DamageAmount;
 		}
@@ -401,14 +408,24 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 
 void AIFCharacter::SprintStart()
 {
-	if     (GetCharacterMovement()->MaxWalkSpeed != 600.0f && MovementVector.Y >= 0)
+	if (!CharacterState.HasTagExact(SprintState) && MovementVector.Y >= 0)
+	{
+		CharacterState.AddTag(SprintState);
+		CharacterState.RemoveTag(IdleState);
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-	else if(GetCharacterMovement()->MaxWalkSpeed != 400.0f && MovementVector.Y <  0)
+	}
+	else if (!CharacterState.HasTagExact(IdleState) && MovementVector.Y < 0)
+	{
+		CharacterState.AddTag(IdleState);
+		CharacterState.RemoveTag(SprintState);
 		GetCharacterMovement()->MaxWalkSpeed = 400.0f;
+	}
 }
 
 void AIFCharacter::SprintEnd()
 {
+	CharacterState.AddTag(IdleState);
+	CharacterState.RemoveTag(SprintState);
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 }
 
@@ -425,19 +442,21 @@ void AIFCharacter::Parrying()
 
 void AIFCharacter::BlockStart()
 {
-	if (GetCharacterMovement()->MaxWalkSpeed != 200.0f)
+	if (CharacterState.HasTagExact(IdleState))
 	{
+		CharacterState.RemoveTag(IdleState);
+		CharacterState.AddTag(ParryingState);
 		GetCharacterMovement()->MaxWalkSpeed  = 200.0f;
-		AnimInstance->SetBlockState(true);
-		bIsParryingPoint = true;
+		AnimInstance->AnimState.AddTag(ANIM_BLOCK);
 	}
 }
 
 void AIFCharacter::BlockEnd()
 {
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
-	bIsBlocking = false;
-	AnimInstance->SetBlockState(false);
+	CharacterState.RemoveTag(BlockingState);
+	CharacterState.AddTag(IdleState);
+	AnimInstance->AnimState.RemoveTag(ANIM_BLOCK);
 }
 
 void AIFCharacter::WeakAttack()
@@ -491,7 +510,6 @@ void AIFCharacter::StrongAttack()
 		}
 		if (::IsValid(Target))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s"), *Target->GetName());
 			Target->WarpPoint->SetWorldLocation(Target->GetActorLocation() + (Camera->GetComponentLocation() - Target->GetActorLocation()).GetSafeNormal() * 75);
 			FVector Direction = Target->WarpPoint->GetComponentLocation() - Camera->GetComponentLocation();
 			FRotator TargetRotation = Direction.Rotation();
@@ -506,10 +524,12 @@ void AIFCharacter::AimStart()
 {
 	RotateToCamera();
 
-	if (GetCharacterMovement()->MaxWalkSpeed != 200.0f)
+	if (CharacterState.HasTagExact(IdleState))
 	{
+		CharacterState.RemoveTag(IdleState);
+		CharacterState.AddTag(AimState);
 		AimHUD->AddToViewport();
-		AnimInstance->SetAimState(true);
+		AnimInstance->AnimState.AddTag(ANIM_AIM);
 		GetCharacterMovement()->MaxWalkSpeed = 200.0f;
 		AimTimeline->Play();
 		AimTimeline->SetPlayRate(2.0f);
@@ -541,7 +561,9 @@ void AIFCharacter::AimEnd()
 
 	AimHUD->RemoveFromParent();
 
-	AnimInstance->SetAimState(false);
+	CharacterState.RemoveTag(AimState);
+	CharacterState.AddTag(IdleState);
+	AnimInstance->AnimState.RemoveTag(ANIM_AIM);
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 	AimTimeline->Reverse();
 	AimTimeline->SetPlayRate(0.6f);
@@ -573,8 +595,8 @@ void AIFCharacter::Execute()
 
 				// Set Axe to Character's Back
 				Sheathe();
-				AnimInstance->SetAxeHolding(false);
-				AnimInstance->SetDrawState(false);
+				AnimInstance->AnimState.RemoveTag(ANIM_AXEHOLDING);
+				AnimInstance->AnimState.RemoveTag(ANIM_DRAW);
 
 				// Set MotionWarping position and warp
 				Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
@@ -592,7 +614,7 @@ void AIFCharacter::Execute()
 				Target->SetDead();
 				Target = nullptr;
 
-				bCanBeDamaged = false;
+				CharacterState.RemoveTag(DamagedState);
 				GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { OnExecutionEnd.Broadcast(); }, ExecutionAssetData->Time, false);
 
 				return;
@@ -608,8 +630,8 @@ void AIFCharacter::UpdateAimCamera(float NewArmLength)
 
 void AIFCharacter::Throw()
 {
-	AnimInstance->StopAllMontages(1);
-	AnimInstance->PlayThrowMontage();
+	if(!AnimInstance->IsAnyMontagePlaying())
+		AnimInstance->PlayThrowMontage();
 }
 
 void AIFCharacter::Draw()
@@ -664,10 +686,10 @@ void AIFCharacter::RecallAxe()
 	AxeTemp.AddTag(AXE_FLYING);
 	AxeTemp.AddTag(AXE_LODGED);
 
-	if (!AnimInstance->GetRecall() && (Axe->HasAnyMatchingGameplayTags(AxeTemp)))
+	if (!Axe->HasMatchingGameplayTag(AXE_RETURNING) && (Axe->HasAnyMatchingGameplayTags(AxeTemp)))
 	{
 		AnimInstance->StopAllMontages(1);
-		AnimInstance->SetRecall(true);
+		AnimInstance->AnimState.AddTag(ANIM_RECALL);
 		AnimInstance->SetCanDoNextAction(false);
 		Axe->Recall();
 	}
@@ -675,9 +697,9 @@ void AIFCharacter::RecallAxe()
 
 void AIFCharacter::CatchAxe()
 {
-    AnimInstance->SetRecall(false);
-    AnimInstance->SetAxeHolding(true);
-    AnimInstance->SetDrawState(true);
+	AnimInstance->AnimState.RemoveTag(ANIM_RECALL);
+	AnimInstance->AnimState.AddTag(ANIM_AXEHOLDING);
+	AnimInstance->AnimState.AddTag(ANIM_DRAW);
     AnimInstance->SetCanDoNextAction(true);
     FName WeaponSocket(TEXT("Weapon_R"));
     Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);

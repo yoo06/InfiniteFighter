@@ -3,6 +3,7 @@
 
 #include "IFCharacterAnimInstance.h"
 #include "IFCharacter.h"
+#include "GameplayTags/CharacterAnimationTag.h"
 #include "KismetAnimationLibrary.h"
 
 UIFCharacterAnimInstance::UIFCharacterAnimInstance()
@@ -11,13 +12,14 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	CharacterSpeed	   = 0.0f;
 	AttackCombo		   = 0;
 	bCanDoNextAction   = true;
-	bIsAxeHolding      = false;
-	bIsDrawState       = false;
-	bIsAttackPlaying   = false;
-	bIsAimState		   = false;
-	bIsRecalling	   = false;
-	bIsDodging		   = false;
-	bIsBlockState	   = false;
+
+	AimState		= ANIM_AIM;
+	DrawState		= ANIM_DRAW;
+	DodgeState		= ANIM_DODGE;
+	BlockState		= ANIM_BLOCK;
+	AttackState		= ANIM_ATTACK;
+	RecallState		= ANIM_RECALL;
+	AxeHoldingState = ANIM_AXEHOLDING;
 
 	// setting montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DRAW_MONTAGE
@@ -171,35 +173,36 @@ void UIFCharacterAnimInstance::NativeInitializeAnimation()
 	DodgeMontages.Add(DodgeLeftMontage);
 	DodgeMontages.Add(DodgeRightMontage);
 
+	CharacterRef = Cast<AIFCharacter>(TryGetPawnOwner());
 }
 
 void UIFCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	auto Pawn = TryGetPawnOwner();
 
-	if (::IsValid(Pawn))
+	if (::IsValid(CharacterRef))
 	{
 		// get speed
-		CharacterSpeed = Pawn->GetVelocity().Size();
+		CharacterSpeed = CharacterRef->GetVelocity().Size();
 
 		// get direction
-		CharacterDirection = UKismetAnimationLibrary::CalculateDirection(Pawn->GetVelocity(), Pawn->GetActorRotation());
+		CharacterDirection = UKismetAnimationLibrary::CalculateDirection(CharacterRef->GetVelocity(), CharacterRef->GetActorRotation());
 	}
 }
 
 // play sheathe if equiped, play draw if unequiped
 void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 {
-	if (!bIsBlockState && !bIsAimState)
+	
+	if (!(AnimState.HasTagExact(BlockState) && AnimState.HasTagExact(AimState)))
 	{
-		if (bIsAxeHolding)
+		if (AnimState.HasTagExact(AxeHoldingState))
 		{
 			if (bCanDoNextAction)
 			{
 				Montage_Play(SheatheMontage);
-				bIsAxeHolding = false;
+				AnimState.RemoveTag(AxeHoldingState);
 			}
 		}
 		else
@@ -207,7 +210,7 @@ void UIFCharacterAnimInstance::PlayDrawSheatheMontage()
 			if (bCanDoNextAction)
 			{
 				Montage_Play(DrawMontage);
-				bIsAxeHolding = true;
+				AnimState.AddTag(AxeHoldingState);
 			}
 		}
 	}
@@ -218,25 +221,23 @@ void UIFCharacterAnimInstance::PlayParryingMontage()
 	if (bCanDoNextAction)
 	{
 		Montage_Play(ParryingMontage);
-		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
-		Character->OnAttackEnd.Broadcast();
+		CharacterRef->OnAttackEnd.Broadcast();
 	}
 }
 
 void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 {
-	if (bCanDoNextAction && !bIsAimState)
+	if (bCanDoNextAction && !AnimState.HasTagExact(AimState))
 	{
-		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
-		Character->OnAttackEnd.Broadcast();
+		CharacterRef->OnAttackEnd.Broadcast();
 
 		AttackCombo = FMath::Clamp(AttackCombo+1, AttackCombo, 3);
-		if (bIsAxeHolding)
+		if (AnimState.HasTagExact(AxeHoldingState))
 		{
-			if (!bIsAttackPlaying)
+			if (!AnimState.HasTagExact(AttackState))
 			{
 				Montage_Play(WeaponWeakAttackMontage, 1.3f);
-				bIsAttackPlaying = true;
+				AnimState.AddTag(AttackState);
 			}
 			else
 			{
@@ -245,10 +246,10 @@ void UIFCharacterAnimInstance::PlayWeakAttackMontage()
 		}
 		else
 		{
-			if (!bIsAttackPlaying)
+			if (!AnimState.HasTagExact(AttackState))
 			{
 				Montage_Play(UnArmWeakAttackMontage);
-				bIsAttackPlaying = true;
+				AnimState.AddTag(AttackState);
 			}
 			else
 			{
@@ -263,10 +264,9 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 {
 	if (bCanDoNextAction)
 	{
-		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
-		Character->OnAttackEnd.Broadcast();
+		CharacterRef->OnAttackEnd.Broadcast();
 
-		if (bIsAxeHolding)
+		if (AnimState.HasTagExact(AxeHoldingState))
 		{
 			// Montage_Play(WeaponStrongAttackMontage);
 		}
@@ -280,7 +280,7 @@ void UIFCharacterAnimInstance::PlayStrongAttackMontage()
 
 void UIFCharacterAnimInstance::PlayThrowMontage()
 {
-	if(bCanDoNextAction && bIsAxeHolding)
+	if(bCanDoNextAction && AnimState.HasTagExact(AxeHoldingState))
 		Montage_Play(ThrowMontage);
 }
 
@@ -361,24 +361,23 @@ void UIFCharacterAnimInstance::React(AActor* Target, AActor* Causer)
 void UIFCharacterAnimInstance::DrawStateStart(UAnimMontage* Montage)
 {
 	if (Montage == SheatheMontage)
-		bIsDrawState = false;
+		AnimState.RemoveTag(DrawState);
 }
 
 void UIFCharacterAnimInstance::DrawStateEnd(UAnimMontage* Montage, bool bInterrupted)
 {
 	// Only Set true when the montage is fully played
 	if (Montage == DrawMontage && !bInterrupted)
-		bIsDrawState = true;
+		AnimState.AddTag(DrawState);
 }
 
 void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage == UnArmWeakAttackMontage || Montage == WeaponWeakAttackMontage || Montage == UnArmStrongAttackMontage)
 	{
-		bIsAttackPlaying = false;
+		AnimState.RemoveTag(AttackState);
 		AttackCombo		 = 0;
-		AIFCharacter* Character = CastChecked<AIFCharacter>(TryGetPawnOwner());
-		Character->OnAttackEnd.Broadcast();
+		CharacterRef->OnAttackEnd.Broadcast();
 	}
 }
 
@@ -419,8 +418,8 @@ void UIFCharacterAnimInstance::AnimNotify_RotationDefault()
 
 void UIFCharacterAnimInstance::AnimNotify_ThrowPoint()
 {
-	bIsDrawState     = false;
-	bIsAxeHolding    = false;
+	AnimState.RemoveTag(DrawState);
+	AnimState.RemoveTag(AxeHoldingState);
 	bCanDoNextAction = true;
 
 	OnThrow.ExecuteIfBound();

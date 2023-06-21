@@ -40,7 +40,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = GameplayTags)
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = AxeState; };
 
-
 private:
 	UPROPERTY(BlueprintReadWrite, Category = GameplayTags, meta = (AllowPrivateAccess))
 	FGameplayTagContainer AxeState;

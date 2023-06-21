@@ -42,8 +42,9 @@ public:
 
 	FORCEINLINE const class UCameraComponent* GetCamera() const { return Camera; };
 	
+	UFUNCTION()
 	AActor* GetAxe();
-	
+
 	UPROPERTY()
 	TObjectPtr<class AIFEnemy> Target;
 
@@ -74,9 +75,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> DrawSheatheAction;
-
-	UPROPERTY(VisibleAnywhere, Category = Input)
-	TObjectPtr<class UInputAction> ParryingAction;
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> BlockAction;
@@ -140,13 +138,17 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TArray<TObjectPtr<class UExecutionAssetData>> ExecutionArray;
 
-	UPROPERTY()
-	bool bIsParryingPoint;
+	FGameplayTag IdleState;
 
-	UPROPERTY()
-	bool bIsBlocking;
+	FGameplayTag SprintState;
 
-	bool bCanBeDamaged;
+	FGameplayTag ParryingState;
+
+	FGameplayTag BlockingState;
+
+	FGameplayTag DamagedState;
+
+	FGameplayTag AimState;
 
 	FTimerHandle DamageTimer;
 

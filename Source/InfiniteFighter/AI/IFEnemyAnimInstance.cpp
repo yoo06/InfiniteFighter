@@ -52,8 +52,6 @@ void UIFEnemyAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
         // get direction
         EnemyDirection = UKismetAnimationLibrary::CalculateDirection(Enemy->GetVelocity(), Enemy->GetActorRotation());
     }
-
-    // bIsStunned = Pawn->GetStunState();
 }
 void UIFEnemyAnimInstance::React(AActor* Target, AActor* Causer)
 {
