@@ -6,13 +6,16 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "Components/TimelineComponent.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
 #include "IFCharacter.generated.h"
 
 DECLARE_DELEGATE(FOnExecuteDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnExecutionEndDelegate);
 
 UCLASS()
-class INFINITEFIGHTER_API AIFCharacter : public ACharacter
+class INFINITEFIGHTER_API AIFCharacter : public ACharacter, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 
@@ -33,7 +36,14 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	FORCEINLINE const class UCameraComponent* AIFCharacter::GetCamera() const { return Camera; };
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	
+	void SetCameraShake();
+
+	FORCEINLINE const class UCameraComponent* GetCamera() const { return Camera; };
+	
+	UFUNCTION()
+	AActor* GetAxe();
 
 	UPROPERTY()
 	TObjectPtr<class AIFEnemy> Target;
@@ -42,7 +52,14 @@ public:
 
 	FOnAttackEndDelegate OnAttackEnd;
 
-	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	FOnExecutionEndDelegate OnExecutionEnd;
+
+	FGameplayTagContainer CharacterState;
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = GameplayTags)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = CharacterState; };
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
@@ -58,9 +75,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> DrawSheatheAction;
-
-	UPROPERTY(VisibleAnywhere, Category = Input)
-	TObjectPtr<class UInputAction> ParryingAction;
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> BlockAction;
@@ -124,18 +138,30 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TArray<TObjectPtr<class UExecutionAssetData>> ExecutionArray;
 
-	UPROPERTY()
-	bool bIsParryingPoint;
+	FGameplayTag IdleState;
 
-	bool bCanBeDamaged;
+	FGameplayTag SprintState;
+
+	FGameplayTag ParryingState;
+
+	FGameplayTag BlockingState;
+
+	FGameplayTag DamagedState;
+
+	FGameplayTag AimState;
 
 	FTimerHandle DamageTimer;
 
 	FTimerHandle SlowTimer;
 
 	UPROPERTY()
-
 	TObjectPtr<class UParticleSystem> ParryingParticle;
+
+	UPROPERTY()
+	TSubclassOf<class UCameraShakeBase> CameraShake;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UBoxComponent> WarpCollision;
 
 	/* Give the Character Movement */
 	void Move(const FInputActionValue& Value);

@@ -12,6 +12,7 @@
 #include "AI/IFEnemy.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Engine/DamageEvents.h"
+#include "GameplayTags/AxeTag.h"
 
 
 // Sets default values
@@ -30,17 +31,16 @@ AIFAxe::AIFAxe()
 	Lodge->SetRelativeLocation(FVector(12.0f, 0.0f, 35.0f));
 
 	// Creating the Axe static Mesh
-	Axe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AXE"));
+	Axe = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("AXE"));
 	Axe->SetupAttachment(Lodge);
 	Axe->SetRelativeLocation(FVector(-12.0f, 0.0f, -30.0f));
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh>SK_AXE
-	(TEXT("/Game/InFiniteFighter/Weapon/axe_low_scetchfab.axe_low_scetchfab"));
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh>SK_AXE
+	(TEXT("/Game/InFiniteFighter/Weapon/axe.axe"));
 	if (SK_AXE.Succeeded())
-		Axe->SetStaticMesh(SK_AXE.Object);
+		Axe->SetSkeletalMesh(SK_AXE.Object);
 
 	Axe->SetCollisionProfileName(TEXT("Weapon"));
-
 
 	// Setting Particles
 	TrailParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TRAIL_PARTICLE_COMPONENT"));
@@ -50,6 +50,17 @@ AIFAxe::AIFAxe()
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeWeaponTrail.P_AxeWeaponTrail"));
 	if (TRAIL_PARTICLE.Succeeded())
 		TrailParticleComponent->SetTemplate(TRAIL_PARTICLE.Object);
+
+	CatchParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("CATCH_PARTICLE_COMPONENT"));
+	CatchParticleComponent->SetupAttachment(Axe);
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem>CATCH_PARTICLE
+	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeCatch.P_AxeCatch"));
+	if (CATCH_PARTICLE.Succeeded())
+		CatchParticleComponent->SetTemplate(CATCH_PARTICLE.Object);
+
+	CatchParticleComponent->SetActorParameter(TEXT("VertSurfaceActor"), this);
+	CatchParticleComponent->bAutoActivate = false;
 
 	static ConstructorHelpers::FObjectFinder<UParticleSystem>SPARK_PARTICLE
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_my_spark_burst.P_my_spark_burst"));
@@ -62,7 +73,7 @@ AIFAxe::AIFAxe()
 	ProjectileMovement->InitialSpeed	 = 3000.0f;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AXE_GRAVITY_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/AxeGravityCurve.AxeGravityCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AxeGravityCurve.AxeGravityCurve"));
 	if (AXE_GRAVITY_CURVE.Succeeded())
 		AxeGravityCurveFloat = AXE_GRAVITY_CURVE.Object;
 
@@ -70,7 +81,7 @@ AIFAxe::AIFAxe()
 	AxeGravityTimeline->SetTimelineLength(1.2f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AXE_ROTATE_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/AxeRotateCurve.AxeRotateCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AxeRotateCurve.AxeRotateCurve"));
 	if (AXE_ROTATE_CURVE.Succeeded())
 		AxeRotateCurveFloat = AXE_ROTATE_CURVE.Object;
 
@@ -78,7 +89,7 @@ AIFAxe::AIFAxe()
 	AxeGravityTimeline->SetTimelineLength(1.0f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>WIGGLE_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/WiggleCurve.WiggleCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/WiggleCurve.WiggleCurve"));
 	if (WIGGLE_CURVE.Succeeded())
 		WiggleCurveFloat = WIGGLE_CURVE.Object;
 
@@ -86,22 +97,22 @@ AIFAxe::AIFAxe()
 	WiggleTimeline->SetTimelineLength(0.8f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_SPEED_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnSpeedCurve.ReturnSpeedCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/ReturnSpeedCurve.ReturnSpeedCurve"));
 	if (RETURN_SPEED_CURVE.Succeeded())
 		ReturnSpeedCurveFloat = RETURN_SPEED_CURVE.Object;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_TILT_START_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnTiltStartCurve.ReturnTiltStartCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/ReturnTiltStartCurve.ReturnTiltStartCurve"));
 	if (RETURN_TILT_START_CURVE.Succeeded())
 		ReturnTiltStartCurveFloat = RETURN_TILT_START_CURVE.Object;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RETURN_TILT_END_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/ReturnTiltEndCurve.ReturnTiltEndCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/ReturnTiltEndCurve.ReturnTiltEndCurve"));
 	if (RETURN_TILT_END_CURVE.Succeeded())
 		ReturnTiltEndCurveFloat = RETURN_TILT_END_CURVE.Object;
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>RIGHT_VECTOR_CURVE
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/RightVectorCurve.RightVectorCurve"));
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/RightVectorCurve.RightVectorCurve"));
 	if (RIGHT_VECTOR_CURVE.Succeeded())
 		RightVectorCurveFloat = RIGHT_VECTOR_CURVE.Object;
 
@@ -120,6 +131,14 @@ AIFAxe::AIFAxe()
 	ReturnStartCameraRotation = FRotator::ZeroRotator;
 	TiltingRotation			  = FRotator::ZeroRotator;
 	SpinCount				  = -1;
+
+	Params.AddIgnoredActor(this);
+	Params.AddIgnoredActor(Character);
+
+	IdleTag		 = AXE_IDLE;
+	FlyingTag	 = AXE_FLYING;
+	LodgedTag	 = AXE_LODGED;
+	ReturningTag = AXE_RETURNING;
 }
 
 // Called when the game starts or when spawned
@@ -131,7 +150,7 @@ void AIFAxe::BeginPlay()
 
 	Character = Cast<AIFCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
-	SetAxeState(EAxeState::Idle);
+	SetAxeState(IdleTag);
 }
 
 void AIFAxe::PostInitializeComponents()
@@ -181,7 +200,7 @@ void AIFAxe::PostInitializeComponents()
 
 void AIFAxe::Throw()
 {
-	SetAxeState(EAxeState::Flying);
+	SetAxeState(FlyingTag);
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
@@ -213,27 +232,21 @@ void AIFAxe::Recall()
 {
 	Character->OnAttackEnd.Broadcast();
 
-    switch (GetAxeState())
-    {
-    case EAxeState::Lodged:
-    {
-        WiggleTimeline->PlayFromStart();
-        WiggleTimeline->SetPlayRate(2.5f);
-        break;
-    }
-    case EAxeState::Flying:
+	if (HasMatchingGameplayTag(LodgedTag))
+	{
+		WiggleTimeline->PlayFromStart();
+		WiggleTimeline->SetPlayRate(2.5f);
+	}
+	else if(HasMatchingGameplayTag(FlyingTag))
     {
         ProjectileMovement->Deactivate();
         AxeGravityTimeline->Stop();
         AxeRotateTimeline ->Stop();
 		Pivot->SetRelativeRotation(FRotator::ZeroRotator);
 		RecallMovement();
-        break;
-    }
-    default:
-        return;
     }
 }
+
 
 void AIFAxe::UpdateAxeGravity(float InGravity)
 {
@@ -245,7 +258,8 @@ void AIFAxe::UpdateAxeGravity(float InGravity)
 		OutHit,
 		GetActorLocation(),
 		GetActorLocation() + (GetVelocity().GetSafeNormal()) * 55.0f,
-		ECollisionChannel::ECC_Visibility
+		ECollisionChannel::ECC_Visibility,
+		Params
 	);
 
     if (bResult)
@@ -264,7 +278,7 @@ void AIFAxe::UpdateRotate(float InRotate)
 
 void AIFAxe::LodgePosition(const FHitResult& InHit)
 {
-	SetAxeState(EAxeState::Lodged);
+	SetAxeState(LodgedTag);
 
 	// Stopping the movements
 	ProjectileMovement->Deactivate();
@@ -301,7 +315,7 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
         {
             AttachToComponent(TargetPawn->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, InHit.BoneName);
 			FDamageEvent DamageEvent;
-			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
+			TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
         }
     }
 	else
@@ -320,7 +334,7 @@ void AIFAxe::UpdateWiggle(float InWigglePosition)
 
 void AIFAxe::RecallMovement()
 {
-	SetAxeState(EAxeState::Returning);
+	SetAxeState(ReturningTag);
 
 	// Initialize components for recall
 	DistanceFromCharacter	  = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
@@ -359,6 +373,7 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 	SetActorLocation(ReturnLocation);
 
 	FHitResult OutHit;
+
 	bool bResult = GetWorld()->SweepSingleByChannel
 	(
 		OutHit,
@@ -366,7 +381,8 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
 		ReturnLocation,
 		FQuat::Identity,
 		ECollisionChannel::ECC_Visibility,
-		FCollisionShape::MakeSphere(25.0f)
+		FCollisionShape::MakeSphere(25.0f),
+		Params
 	);
 
     if (bResult)
@@ -376,9 +392,8 @@ void AIFAxe::UpdateReturnLocation(float InSpeed)
             AIFEnemy* TargetPawn = Cast<AIFEnemy>(OutHit.GetActor());
             if (::IsValid(TargetPawn))
             {
-				// UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodParticle, ReturnLocation, FRotator::ZeroRotator, true);
                 FDamageEvent DamageEvent;
-                TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), Character);
+                TargetPawn->TakeDamage(1, DamageEvent, Character->GetController(), this);
             }
         }
 		else
@@ -407,9 +422,12 @@ void AIFAxe::UpdateTiltEnd(float InValue)
 
 void AIFAxe::CatchAxe()
 {
-	SetAxeState(EAxeState::Idle);
+	
+	SetAxeState(IdleTag);
+
 	OnAxeCatch.ExecuteIfBound();
 	TrailParticleComponent->EndTrails();
+	CatchParticleComponent->Activate();
 }
 
 void AIFAxe::CalculateSpin(float InTimelinePlayRate)

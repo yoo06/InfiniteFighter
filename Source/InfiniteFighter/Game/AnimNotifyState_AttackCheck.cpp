@@ -34,9 +34,7 @@ void UAnimNotifyState_AttackCheck::NotifyTick(USkeletalMeshComponent* MeshComp, 
             {
                 FDamageEvent DamageEvent;
                 if (HitTarget->TakeDamage(1, DamageEvent, MeshOwner->GetController(), MeshOwner) > 0)
-                {
                     UGameplayStatics::SpawnEmitterAtLocation(MeshOwner->GetWorld(), BloodParticle, OutHit.ImpactPoint, FRotator::ZeroRotator, true);
-                }
             }
         }
 

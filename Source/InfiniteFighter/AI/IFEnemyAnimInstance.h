@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "GameplayTagContainer.h"
 #include "IFEnemyAnimInstance.generated.h"
 
 /**
@@ -17,9 +18,6 @@ class INFINITEFIGHTER_API UIFEnemyAnimInstance : public UAnimInstance
 public:
 	UIFEnemyAnimInstance();
 
-	FORCEINLINE void SetStunState(bool bInStunState) { bIsStunned = bInStunState; }
-	FORCEINLINE bool GetStunState() const { return bIsStunned; }
-
 protected:
 	virtual void NativeInitializeAnimation() override;
 
@@ -28,7 +26,12 @@ protected:
 public:
 	void React(AActor* Target, AActor* Causer);
 
+	void DeathAnim(AActor* Target, AActor* Causer);
+
+	UFUNCTION(BlueprintCallable)
 	void PlayAttackMontage();
+
+	void PlayRangeAttackMontage();
 private:
 	// Montage
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
@@ -38,7 +41,16 @@ private:
 	TObjectPtr<UAnimMontage> ReactFrontMontage;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> DeadBackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> DeadFrontMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> RangeAttackMontage;
 
 	// variables
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -48,5 +60,5 @@ private:
 	float EnemySpeed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool bIsStunned;
+	TObjectPtr<class AIFEnemy> Enemy;
 };

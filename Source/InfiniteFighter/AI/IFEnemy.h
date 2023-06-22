@@ -4,10 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"
+#include "Components/TimelineComponent.h"
 #include "IFEnemy.generated.h"
 
 UCLASS()
-class INFINITEFIGHTER_API AIFEnemy : public ACharacter
+class INFINITEFIGHTER_API AIFEnemy : public ACharacter, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 
@@ -27,7 +30,7 @@ public:
 
 	void Attack();
 	
-	void SetDead();
+	void SetDead(float Time);
 
 	UFUNCTION()
 	void PlayMontage(UAnimMontage* AnimMontage);
@@ -41,24 +44,25 @@ public:
 	FORCEINLINE void SetCanBeAttackedTrue() { bCanBeAttacked = true; }
 
 	void ActivateStun();
-	void DeactivateStun();
-	FORCEINLINE bool GetStunState();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
 
+public:
+	// GameplayTag
+	UPROPERTY(BlueprintReadOnly, Category = GameplayTags)
+	FGameplayTagContainer EnemyState;
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = GameplayTags)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = EnemyState; };
+
+private:
+	FGameplayTag StunTag;
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UStaticMeshComponent> Weapon;
-
-	UFUNCTION()
-	void OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<class UBoxComponent> WarpCollision;
 
 	bool bCanBeAttacked;
 
@@ -66,6 +70,30 @@ private:
 
 	FTimerHandle StunTimer;
 
+	FTimerHandle HitStopTimer;
+
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystem> BloodParticle;
+
+	TObjectPtr<class UMaterialInstanceDynamic> MIDCharacter;
+	TObjectPtr<class UMaterialInstanceDynamic> MIDWeapon;
+
+	UPROPERTY()
+	TObjectPtr<UTimelineComponent> DissolveTimeline;
+
+	UPROPERTY()
+	TObjectPtr<UCurveFloat> DissolveCurveFloat;
+
+	FOnTimelineFloat OnDissolveTimelineFunction;
+
+	FOnTimelineEvent OnDissolveTimelineFinished;
+
+	UFUNCTION()
+	void UpdateDissolve(float InTimeline);
+
+	UFUNCTION()
+	void SetDestroy();
+
+	UPROPERTY(VisibleAnywhere)
+	float Hp;
 };

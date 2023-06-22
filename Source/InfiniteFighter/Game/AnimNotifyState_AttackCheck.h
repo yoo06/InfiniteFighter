@@ -28,5 +28,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<class UParticleSystem> BloodParticle;
-
 };

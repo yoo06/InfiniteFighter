@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "IFEnemyController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameplayTags/EnemyTag.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -49,12 +50,16 @@ AIFEnemy::AIFEnemy()
 	WarpPoint->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	WarpPoint->SetupAttachment(RootComponent);
 
-	WarpCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("WARP_COLLISION"));
-	WarpCollision->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-	WarpCollision->SetBoxExtent(FVector(400.0f, 400.0f, 32.0f));
-	WarpCollision->SetupAttachment(RootComponent);
-
 	bCanBeAttacked = true;
+
+	// setting Timeline for Dissolve effect
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DISSOLVE_TIMELINE"));
+	DissolveTimeline->SetTimelineLength(1.0f);
+
+	static ConstructorHelpers::FObjectFinder<UCurveFloat>DISSOLVE_CURVE
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/DissolveCurve.DissolveCurve"));
+	if (DISSOLVE_CURVE.Succeeded())
+		DissolveCurveFloat = DISSOLVE_CURVE.Object;
 
 	// setting Controller
 	AIControllerClass = AIFEnemyController::StaticClass();
@@ -66,6 +71,10 @@ AIFEnemy::AIFEnemy()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
 	bUseControllerRotationRoll  = false;
+
+	StunTag = ENEMY_STUN;
+
+	Hp = 10;
 }
 
 // Called when the game starts or when spawned
@@ -80,9 +89,6 @@ void AIFEnemy::BeginPlay()
 	AIController->SetTarget(PlayerCharacter);
 
 	PlayerCharacter->OnAttackEnd.AddUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
-
-	WarpCollision->OnComponentBeginOverlap.AddDynamic(this, &AIFEnemy::OverlapBegin);
-	WarpCollision->OnComponentEndOverlap.  AddDynamic(this, &AIFEnemy::OverlapEnd);
 }
 
 void AIFEnemy::PostInitializeComponents()
@@ -90,84 +96,153 @@ void AIFEnemy::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	AnimInstance = Cast<UIFEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+
+	OnDissolveTimelineFunction.BindDynamic(this, &AIFEnemy::UpdateDissolve);
+	DissolveTimeline->AddInterpFloat(DissolveCurveFloat, OnDissolveTimelineFunction);
+
+	OnDissolveTimelineFinished.BindDynamic(this, &AIFEnemy::SetDestroy);
+	DissolveTimeline->SetTimelineFinishedFunc(OnDissolveTimelineFinished);
+
+	DissolveTimeline->SetPlayRate(0.4f);
+
+	// setting mesh material
+	UMaterialInterface* NewMaterial = LoadObject<UMaterialInterface>
+		(nullptr, TEXT("/Game/InFiniteFighter/Characters/Mannequin_UE4/Materials/M_Mannequin_Inst.M_Mannequin_Inst"));
+
+	MIDCharacter = UMaterialInstanceDynamic::Create(NewMaterial, nullptr);
+
+	GetMesh()->SetMaterial(0, MIDCharacter);
+	GetMesh()->SetMaterial(1, MIDCharacter);
+
+	// setting weapon material
+	UMaterialInterface* NewWeapon = LoadObject<UMaterialInterface>
+		(nullptr, TEXT("/Game/InFiniteFighter/AI/Materials/weapon_2_Inst.weapon_2_Inst"));
+
+	MIDWeapon = UMaterialInstanceDynamic::Create(NewWeapon, nullptr);
+
+	Weapon->SetMaterial(0, MIDWeapon);
 }
 
 // Called every frame
 void AIFEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-}
 
-void AIFEnemy::Attack()
-{
-	AnimInstance->PlayAttackMontage();
-}
+	FVector LookVector = PlayerCharacter->GetActorLocation() - GetActorLocation();
+	LookVector.Z = 0.0f;
+	FRotator TargetRot = FRotationMatrix::MakeFromX(LookVector).Rotator();
 
-void AIFEnemy::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (PlayerCharacter == OtherActor)
+	if (!AnimInstance->IsAnyMontagePlaying() && !HasMatchingGameplayTag(StunTag))
 	{
-		// If the Target variable is not already set
-		if (PlayerCharacter->Target == nullptr)
+		float RotationDifference = (GetActorRotation() - TargetRot).GetNormalized().Yaw;
+		
+		if (FMath::Abs(RotationDifference) < 10)
 		{
-			// Set the player's Target variable to be this enemy
-			PlayerCharacter->Target = this;
+			SetActorRotation(TargetRot);
+		}
+		else
+		{
+			SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 5));
 		}
 	}
 }
 
-void AIFEnemy::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AIFEnemy::Attack()
 {
-	if (PlayerCharacter == OtherActor)
+	if (GetDistanceTo(PlayerCharacter) < 400)
 	{
-		// If the Target variable is set to this
-		if (PlayerCharacter->Target == this)
-		{
-			// Set the player's Target variable to be nullptr
-			PlayerCharacter->Target = nullptr;
-		}
+		AnimInstance->PlayAttackMontage();
+	}
+	else
+	{
+		AnimInstance->PlayRangeAttackMontage();
 	}
 }
 
 float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	if (DamageCauser == PlayerCharacter)
-	{
-		if (bCanBeAttacked)
-		{
-			AnimInstance->React(this, DamageCauser);
-			bCanBeAttacked = false;
-			return DamageAmount;
-		}
-	}
-	return DamageAmount;
+    if (Hp > 0)
+    {
+        if (DamageCauser == PlayerCharacter)
+        {
+            if (bCanBeAttacked)
+            {
+                Hp--;
+				UE_LOG(LogTemp, Warning, TEXT("%f"), Hp);
+                // taking damage
+                PlayerCharacter->SetCameraShake();
+                AnimInstance->React(this, DamageCauser);
+                bCanBeAttacked = false;
+
+                // pause for hit stop
+                PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Pause();
+                AnimInstance->Montage_Pause();
+
+                // setting the frame (4fps)
+                float StiffFrame = 4.0f / 60.0f;
+
+                // using timer to free animation
+                GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [&]()
+                    {
+                        PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
+                        AnimInstance->Montage_Resume(nullptr);
+                    },
+                    StiffFrame, false);
+
+                return DamageAmount;
+            }
+        }
+        else if (DamageCauser == PlayerCharacter->GetAxe())
+        {
+			if (bCanBeAttacked)
+			{
+
+				Hp--;
+				UE_LOG(LogTemp, Warning, TEXT("%f"), Hp);
+				AnimInstance->React(this, DamageCauser);
+				bCanBeAttacked = false;
+
+				return DamageAmount;
+			}
+        }
+    }
+    else
+    {
+        AnimInstance->DeathAnim(this, DamageCauser);
+        SetDead(1.5f);
+    }
+
+    return 0;
 }
 
 void AIFEnemy::ActivateStun()
 {
 	AnimInstance->StopAllMontages(0);
-	AnimInstance->SetStunState(true);
-	GetWorld()->GetTimerManager().SetTimer(StunTimer, this, &AIFEnemy::DeactivateStun, 5.0f, false);
+	EnemyState.AddTag(StunTag);
+	GetWorld()->GetTimerManager().SetTimer(StunTimer, [this](){ EnemyState.RemoveTag(StunTag); }, 5.0f, false);
 }
 
-void AIFEnemy::DeactivateStun()
+void AIFEnemy::UpdateDissolve(float InTimeline)
 {
-	AnimInstance->SetStunState(false);
+	MIDCharacter->SetScalarParameterValue(TEXT("Appearance"), InTimeline);
+	MIDWeapon	->SetScalarParameterValue(TEXT("Appearance"), InTimeline);
 }
 
-bool AIFEnemy::GetStunState()
+void AIFEnemy::SetDestroy()
 {
-	return AnimInstance->GetStunState();
+	Destroy();
 }
 
-void AIFEnemy::SetDead()
+void AIFEnemy::SetDead(float Time)
 {
-	SetActorEnableCollision(false);
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Dead"));
+	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
 	AIFEnemyController* AIController = Cast<AIFEnemyController>(GetController());
 	AIController->StopAI();
+	FTimerHandle DeadTimer;
+	GetWorld()->GetTimerManager().SetTimer(DeadTimer, [this]() { DissolveTimeline->Play(); }, Time, false);
 }
 
 void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)
