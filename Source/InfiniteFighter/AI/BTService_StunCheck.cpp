@@ -9,12 +9,12 @@
 
 UBTService_StunCheck::UBTService_StunCheck()
 {
-    Interval = 0.2f;
+	Interval = 0.2f;
 }
 
 void UBTService_StunCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-    Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
+	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
 	APawn* ControllingPawn = OwnerComp.GetAIOwner()->GetPawn();
 	if (nullptr == ControllingPawn)
@@ -27,6 +27,6 @@ void UBTService_StunCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* No
 	{
 		return;
 	}
-
+	
 	OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("IsStunned"), AIPawn->HasMatchingGameplayTag(ENEMY_STUN));
 }

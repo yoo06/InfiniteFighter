@@ -15,7 +15,6 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 
 	AimState		= ANIM_AIM;
 	DrawState		= ANIM_DRAW;
-	DodgeState		= ANIM_DODGE;
 	BlockState		= ANIM_BLOCK;
 	AttackState		= ANIM_ATTACK;
 	RecallState		= ANIM_RECALL;
@@ -160,7 +159,7 @@ void UIFCharacterAnimInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 
 	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::DrawStateStart);
-	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::CanDoNextActionFalse);
+	OnMontageStarted.AddDynamic(this, &UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::DrawStateEnd);
 	OnMontageEnded.  AddDynamic(this, &UIFCharacterAnimInstance::AttackStateEnd);
 
@@ -381,12 +380,7 @@ void UIFCharacterAnimInstance::AttackStateEnd(UAnimMontage* Montage, bool bInter
 	}
 }
 
-void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse()
-{
-	bCanDoNextAction = false;
-}
-
-void UIFCharacterAnimInstance::CanDoNextActionFalse(UAnimMontage* Montage)
+void UIFCharacterAnimInstance::AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage)
 {
 	bCanDoNextAction = false;
 }

@@ -438,6 +438,7 @@ void AIFCharacter::DrawSheathe()
 void AIFCharacter::Parrying()
 {
 	AnimInstance->PlayParryingMontage();
+	CharacterState.RemoveTag(BlockingState);
 }
 
 void AIFCharacter::BlockStart()
@@ -611,7 +612,7 @@ void AIFCharacter::Execute()
 				Controller->SetControlRotation(Target->WarpPoint->GetComponentRotation());
 				ExecutionAssetData->Play();
 
-				Target->SetDead();
+				Target->SetDead(6);
 				Target = nullptr;
 
 				CharacterState.RemoveTag(DamagedState);

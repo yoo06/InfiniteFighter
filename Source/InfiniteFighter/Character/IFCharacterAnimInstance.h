@@ -105,8 +105,6 @@ private:
 
 	FGameplayTag RecallState;
 
-	FGameplayTag DodgeState;
-
 	UPROPERTY()
 	int32 AttackCombo;
 
@@ -208,11 +206,7 @@ private:
 
 	/* Notify function to Make bCanDoNextAction to false */
 	UFUNCTION()
-	void AnimNotify_CanDoNextActionFalse();
-
-	/* Delegate function to make bCanDoNextAction to false */
-	UFUNCTION()
-	void CanDoNextActionFalse(UAnimMontage* Montage);
+	void AnimNotify_CanDoNextActionFalse(UAnimMontage* Montage);
 	
 	/* Notify to make bCanDoNextAction to true */
 	UFUNCTION()

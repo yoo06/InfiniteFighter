@@ -20,6 +20,17 @@ UIFEnemyAnimInstance::UIFEnemyAnimInstance()
     if (REACT_FRONT_MONTAGE.Succeeded())
         ReactFrontMontage = REACT_FRONT_MONTAGE.Object;
 
+    static ConstructorHelpers::FObjectFinder<UAnimMontage>DEAD_BACK_MONTAGE
+    (TEXT("/Game/InFiniteFighter/AI/Animation/React/dead_Back_Montage.dead_Back_Montage"));
+    if (DEAD_BACK_MONTAGE.Succeeded())
+        DeadBackMontage = DEAD_BACK_MONTAGE.Object;
+
+    static ConstructorHelpers::FObjectFinder<UAnimMontage>DEAD_FRONT_MONTAGE
+    (TEXT("/Game/InFiniteFighter/AI/Animation/React/dead_Front_Montage.dead_Front_Montage"));
+    if (DEAD_FRONT_MONTAGE.Succeeded())
+        DeadFrontMontage = DEAD_FRONT_MONTAGE.Object;
+
+
     static ConstructorHelpers::FObjectFinder<UAnimMontage>ATTACK_MONTAGE
     (TEXT("/Game/InFiniteFighter/AI/Animation/Combat/atk_04_Montage.atk_04_Montage"));
     if (ATTACK_MONTAGE.Succeeded())
@@ -70,6 +81,26 @@ void UIFEnemyAnimInstance::React(AActor* Target, AActor* Causer)
     {
         Target->SetActorRotation(FRotator(CurrentRotation.Pitch, Causer->GetActorRotation().Yaw, CurrentRotation.Roll));
         Montage_Play(ReactBackMontage);
+    }
+}
+
+void UIFEnemyAnimInstance::DeathAnim(AActor* Target, AActor* Causer)
+{
+    if (!(::IsValid(Target) && ::IsValid(Causer))) return;
+    // check if character and enemy are facing(DotProduct on both character's forward vector)
+    float DotProduct = FVector::DotProduct(Causer->GetActorForwardVector(), Target->GetActorForwardVector());
+
+    FRotator CurrentRotation = Target->GetActorRotation();
+
+    if (DotProduct < 0)
+    {
+        Target->SetActorRotation(FRotator(CurrentRotation.Pitch, Causer->GetActorRotation().Yaw + 180, CurrentRotation.Roll));
+        Montage_Play(DeadFrontMontage);
+    }
+    else
+    {
+        Target->SetActorRotation(FRotator(CurrentRotation.Pitch, Causer->GetActorRotation().Yaw, CurrentRotation.Roll));
+        Montage_Play(DeadBackMontage);
     }
 }
 

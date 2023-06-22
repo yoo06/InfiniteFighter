@@ -26,6 +26,8 @@ protected:
 public:
 	void React(AActor* Target, AActor* Causer);
 
+	void DeathAnim(AActor* Target, AActor* Causer);
+
 	UFUNCTION(BlueprintCallable)
 	void PlayAttackMontage();
 
@@ -37,6 +39,12 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> ReactFrontMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> DeadBackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> DeadFrontMontage;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> AttackMontage;

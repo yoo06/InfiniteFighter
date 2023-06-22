@@ -30,7 +30,7 @@ public:
 
 	void Attack();
 	
-	void SetDead();
+	void SetDead(float Time);
 
 	UFUNCTION()
 	void PlayMontage(UAnimMontage* AnimMontage);
@@ -93,4 +93,7 @@ private:
 
 	UFUNCTION()
 	void SetDestroy();
+
+	UPROPERTY(VisibleAnywhere)
+	float Hp;
 };

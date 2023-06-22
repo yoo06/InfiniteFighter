@@ -73,6 +73,8 @@ AIFEnemy::AIFEnemy()
 	bUseControllerRotationRoll  = false;
 
 	StunTag = ENEMY_STUN;
+
+	Hp = 10;
 }
 
 // Called when the game starts or when spawned
@@ -125,6 +127,24 @@ void AIFEnemy::PostInitializeComponents()
 void AIFEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	FVector LookVector = PlayerCharacter->GetActorLocation() - GetActorLocation();
+	LookVector.Z = 0.0f;
+	FRotator TargetRot = FRotationMatrix::MakeFromX(LookVector).Rotator();
+
+	if (!AnimInstance->IsAnyMontagePlaying() && !HasMatchingGameplayTag(StunTag))
+	{
+		float RotationDifference = (GetActorRotation() - TargetRot).GetNormalized().Yaw;
+		
+		if (FMath::Abs(RotationDifference) < 10)
+		{
+			SetActorRotation(TargetRot);
+		}
+		else
+		{
+			SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 5));
+		}
+	}
 }
 
 void AIFEnemy::Attack()
@@ -141,43 +161,60 @@ void AIFEnemy::Attack()
 
 float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	if (DamageCauser == PlayerCharacter)
-	{
-		if (bCanBeAttacked)
-		{
-			// taking damage
-			PlayerCharacter->SetCameraShake();
-			AnimInstance->React(this, DamageCauser);
-			bCanBeAttacked = false;
+    if (Hp > 0)
+    {
+        if (DamageCauser == PlayerCharacter)
+        {
+            if (bCanBeAttacked)
+            {
+                Hp--;
+				UE_LOG(LogTemp, Warning, TEXT("%f"), Hp);
+                // taking damage
+                PlayerCharacter->SetCameraShake();
+                AnimInstance->React(this, DamageCauser);
+                bCanBeAttacked = false;
 
-			// pause for hit stop
-			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Pause();
-			AnimInstance->Montage_Pause();
-			
-			// setting the frame (4fps)
-			float StiffFrame = 4.0f / 60.0f;
+                // pause for hit stop
+                PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Pause();
+                AnimInstance->Montage_Pause();
 
-			// using timer to free animation
-			GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [&]()
+                // setting the frame (4fps)
+                float StiffFrame = 4.0f / 60.0f;
+
+                // using timer to free animation
+                GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [&]()
+                    {
+                        PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
+                        AnimInstance->Montage_Resume(nullptr);
+                    },
+                    StiffFrame, false);
+
+                return DamageAmount;
+            }
+        }
+        else if (DamageCauser == PlayerCharacter->GetAxe())
+        {
+			if (bCanBeAttacked)
 			{
-				PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
-				AnimInstance->Montage_Resume(nullptr);
-			}, 
-			StiffFrame, false);
-			
-			return DamageAmount;
-		}
-	}
-	else if (DamageCauser == PlayerCharacter->GetAxe())
-	{
-		AnimInstance->React(this, DamageCauser);
-		bCanBeAttacked = false;
 
-		return DamageAmount;
-	}
-	return 0;
+				Hp--;
+				UE_LOG(LogTemp, Warning, TEXT("%f"), Hp);
+				AnimInstance->React(this, DamageCauser);
+				bCanBeAttacked = false;
+
+				return DamageAmount;
+			}
+        }
+    }
+    else
+    {
+        AnimInstance->DeathAnim(this, DamageCauser);
+        SetDead(1.5f);
+    }
+
+    return 0;
 }
 
 void AIFEnemy::ActivateStun()
@@ -198,13 +235,14 @@ void AIFEnemy::SetDestroy()
 	Destroy();
 }
 
-void AIFEnemy::SetDead()
+void AIFEnemy::SetDead(float Time)
 {
-	SetActorEnableCollision(false);
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Dead"));
+	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
 	AIFEnemyController* AIController = Cast<AIFEnemyController>(GetController());
 	AIController->StopAI();
 	FTimerHandle DeadTimer;
-	GetWorld()->GetTimerManager().SetTimer(DeadTimer, [this]() { DissolveTimeline->Play(); }, 6.0f, false);
+	GetWorld()->GetTimerManager().SetTimer(DeadTimer, [this]() { DissolveTimeline->Play(); }, Time, false);
 }
 
 void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)
