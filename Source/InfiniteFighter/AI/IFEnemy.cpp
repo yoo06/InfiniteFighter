@@ -67,13 +67,14 @@ AIFEnemy::AIFEnemy()
 	
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
 	bUseControllerRotationRoll  = false;
 
 	StunTag = ENEMY_STUN;
-
+	
 	Hp = 10;
 }
 
@@ -97,6 +98,7 @@ void AIFEnemy::PostInitializeComponents()
 
 	AnimInstance = Cast<UIFEnemyAnimInstance>(GetMesh()->GetAnimInstance());
 
+	// setting dissolve timeline
 	OnDissolveTimelineFunction.BindDynamic(this, &AIFEnemy::UpdateDissolve);
 	DissolveTimeline->AddInterpFloat(DissolveCurveFloat, OnDissolveTimelineFunction);
 
@@ -137,13 +139,9 @@ void AIFEnemy::Tick(float DeltaTime)
 		float RotationDifference = (GetActorRotation() - TargetRot).GetNormalized().Yaw;
 		
 		if (FMath::Abs(RotationDifference) < 10)
-		{
 			SetActorRotation(TargetRot);
-		}
 		else
-		{
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 5));
-		}
 	}
 }
 

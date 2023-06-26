@@ -12,5 +12,5 @@ bool UBTDecorator_RandomChance::CalculateRawConditionValue(UBehaviorTreeComponen
 {
     float Rand = FMath::FRand();
 
-    return SucceedRate >= Rand;
+    return SuccessRate >= Rand;
 }
