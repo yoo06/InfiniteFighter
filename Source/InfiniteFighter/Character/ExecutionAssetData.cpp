@@ -4,13 +4,14 @@
 #include "Character/ExecutionAssetData.h"
 #include "LevelSequencePlayer.h"
 #include "LevelSequence.h"
+#include "LevelSequenceActor.h"
 
 UExecutionAssetData::UExecutionAssetData()
 {
 	WarpPoint = FVector::ZeroVector;
 }
 
-void UExecutionAssetData::CreateSequencePlayer()
+void UExecutionAssetData::CreateSequencePlayer(AActor* CineCamera)
 {
 	if (::IsValid(LevelSequence))
 	{
@@ -23,6 +24,8 @@ void UExecutionAssetData::CreateSequencePlayer()
 		ALevelSequenceActor* SequenceActor;
 
 		LevelSequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GWorld, LevelSequence, Settings, SequenceActor);
+
+		SequenceActor->AddBindingByTag(TEXT("CineCameraActor"), CineCamera, true);
 	}
 }
 

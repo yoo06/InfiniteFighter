@@ -11,7 +11,7 @@ public class InfiniteFighter : ModuleRules
 		PublicIncludePaths.AddRange(new string[] { "InfiniteFighter" });
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput",
-			"AnimGraphRuntime", "CommonInput", "UMG", "MotionWarping", "LevelSequence", "MovieScene", "NavigationSystem", "AIModule", 
-			"GameplayTasks", "GameplayTags" });
+			"AnimGraphRuntime", "CommonInput", "UMG", "MotionWarping", "LevelSequence", "MovieScene", "CinematicCamera", "NavigationSystem", "AIModule", 
+			"GameplayTasks", "GameplayTags", "Niagara" });
 	}
 }

@@ -7,6 +7,8 @@
 #include "InputMappingContext.h"
 #include "CommonInputSubsystem.h"
 #include "Camera/CameraComponent.h"
+#include "CineCameraActor.h"
+#include "CineCameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -122,6 +124,7 @@ AIFCharacter::AIFCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAMERA"));
 	Camera->SetupAttachment(SpringArm);
+
 	// positioning the skeletal mesh
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -90.0f), FRotator(0.0f, -90.0f, 0.0f));
 
@@ -150,7 +153,7 @@ AIFCharacter::AIFCharacter()
 
 	// setting the mesh and animation
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh>SKM_MESH
-	(TEXT("/Game/InFiniteFighter/Characters/Mannequin_UE4/Meshes/SK_Mannequin.SK_Mannequin"));
+	(TEXT("/Game/InFiniteFighter/Characters/Kratos/Kratos_Fix.Kratos_Fix"));
 	if (SKM_MESH.Succeeded())
 		GetMesh()->SetSkeletalMesh(SKM_MESH.Object);
 
@@ -167,11 +170,6 @@ AIFCharacter::AIFCharacter()
 	Target == nullptr;
 
 	// setting execution
-	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SLAM_REF
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SlamExecution.SlamExecution"));
-	if (SLAM_REF.Succeeded())
-		ExecutionArray.Add(SLAM_REF.Object);
-
 	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SWEEP_REF
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SweepExecution.SweepExecution"));
 	if (SWEEP_REF.Succeeded())
@@ -181,6 +179,11 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/TackleExecution.TackleExecution"));
 	if (TACKLE_REF.Succeeded())
 		ExecutionArray.Add(TACKLE_REF.Object);
+
+	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SLAM_REF
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SlamExecution.SlamExecution"));
+	if (SLAM_REF.Succeeded())
+		ExecutionArray.Add(SLAM_REF.Object);
 
 	// setting Particle
 	static ConstructorHelpers::FObjectFinder<UParticleSystem>PARRYING_PARTICLE
@@ -276,6 +279,17 @@ void AIFCharacter::PostInitializeComponents()
 	if (::IsValid(Axe))
 		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
 
+	// Creating the Axe and Attaching it to Back
+	CineCamera = GetWorld()->SpawnActor<ACineCameraActor>(GetActorLocation() + FVector(-210.0f, 50.0f, 80.0f), GetActorRotation());
+	
+	CineCamera->GetCineCameraComponent()->SetCurrentFocalLength(25.0f);
+	CineCamera->GetCineCameraComponent()->SetFilmbackPresetByName(FString::Printf(TEXT("16:9 Digital Film")));
+	
+	if (::IsValid(CineCamera))
+	{
+		CineCamera->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+	}
+
 	// cast IFCharacterAnimInstance to Character's AnimInstance
 	AnimInstance = Cast<UIFCharacterAnimInstance>(GetMesh()->GetAnimInstance());
 
@@ -301,7 +315,7 @@ void AIFCharacter::PostInitializeComponents()
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 	
 	for(const auto& ExecutionAssetData : ExecutionArray)
-		ExecutionAssetData->CreateSequencePlayer();
+		ExecutionAssetData->CreateSequencePlayer(CineCamera);
 }
 
 float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -408,13 +422,13 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 
 void AIFCharacter::SprintStart()
 {
-	if (!CharacterState.HasTagExact(SprintState) && MovementVector.Y >= 0)
+	if (!CharacterState.HasTagExact(SprintState) && (MovementVector.X >= -0.5 && MovementVector.X < 0.5 && MovementVector.Y > 0))
 	{
 		CharacterState.AddTag(SprintState);
 		CharacterState.RemoveTag(IdleState);
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 	}
-	else if (!CharacterState.HasTagExact(IdleState) && MovementVector.Y < 0)
+	else if (!CharacterState.HasTagExact(IdleState) && !(MovementVector.X >= -0.5 && MovementVector.X < 0.5 && MovementVector.Y > 0))
 	{
 		CharacterState.AddTag(IdleState);
 		CharacterState.RemoveTag(SprintState);
@@ -590,7 +604,7 @@ void AIFCharacter::Execute()
 			{
 				Target = TargetRef;
 
-				const int RandNum = FMath::RandRange(0, 2);
+				const int RandNum = FMath::RandRange(0, ExecutionArray.Num() - 1);
 
 				const auto& ExecutionAssetData = ExecutionArray[RandNum];
 

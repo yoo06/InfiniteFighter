@@ -18,7 +18,7 @@ public:
 	UExecutionAssetData();
 	
 	/* Create SequencePlayer for Sequence play */
-	void CreateSequencePlayer();
+	void CreateSequencePlayer(AActor* CineCamera);
 
 	/* Function to play the levelSequencerPlayer so the character doesn't need to include header files */
 	void Play();

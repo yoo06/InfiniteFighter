@@ -104,6 +104,9 @@ private:
 	TObjectPtr<class UCameraComponent> Camera;
 
 	UPROPERTY(VisibleAnywhere, Category = Camera)
+	TObjectPtr<class ACineCameraActor> CineCamera;
+
+	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class USpringArmComponent> SpringArm;
 
 	UPROPERTY(VisibleAnywhere, Category = Movement)

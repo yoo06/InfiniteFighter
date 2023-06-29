@@ -13,6 +13,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Engine/DamageEvents.h"
 #include "GameplayTags/AxeTag.h"
+#include "NiagaraComponent.h"
 
 
 // Sets default values
@@ -45,6 +46,16 @@ AIFAxe::AIFAxe()
 	// Setting Particles
 	TrailParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TRAIL_PARTICLE_COMPONENT"));
 	TrailParticleComponent->SetupAttachment(Axe);
+
+	TrailNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TRAIL_NIAGARA_COMPONENT"));
+	TrailNiagaraComponent->SetupAttachment(Axe);
+	
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem>TRAIL_NIAGARA
+	(TEXT("/Game/InFiniteFighter/FX/Trail/Recall-Trail_Niagara.Recall-Trail_Niagara"));
+	if (TRAIL_NIAGARA.Succeeded())
+		TrailNiagaraComponent->SetAsset(TRAIL_NIAGARA.Object);
+
+	TrailNiagaraComponent->bAutoActivate = false;
 
 	static ConstructorHelpers::FObjectFinder<UParticleSystem>TRAIL_PARTICLE
 	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeWeaponTrail.P_AxeWeaponTrail"));
@@ -221,9 +232,10 @@ void AIFAxe::Throw()
 	AxeRotateTimeline->PlayFromStart();
 	AxeRotateTimeline->SetPlayRate(2.5f);
 
-	TrailParticleComponent->BeginTrails(TEXT("Top"), TEXT("Bottom"), ETrailWidthMode_FromCentre, 1.0f);
+	// TrailParticleComponent->BeginTrails(TEXT("Top"), TEXT("Bottom"), ETrailWidthMode_FromCentre, 1.0f);
+	// TrailParticleComponent->ActivateSystem();
 
-	TrailParticleComponent->ActivateSystem();
+	TrailNiagaraComponent->ActivateSystem();
 
 	Character->OnAttackEnd.Broadcast();
 }
@@ -426,7 +438,9 @@ void AIFAxe::CatchAxe()
 	SetAxeState(IdleTag);
 
 	OnAxeCatch.ExecuteIfBound();
-	TrailParticleComponent->EndTrails();
+	// TrailParticleComponent->EndTrails();
+	TrailNiagaraComponent->Deactivate();
+
 	CatchParticleComponent->Activate();
 }
 
