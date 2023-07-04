@@ -9,6 +9,8 @@
 #include "Components/TimelineComponent.h"
 #include "IFEnemy.generated.h"
 
+DECLARE_DELEGATE_OneParam(FOnHpChangedDelegate, float)
+
 UCLASS()
 class INFINITEFIGHTER_API AIFEnemy : public ACharacter, public IGameplayTagAssetInterface
 {
@@ -33,7 +35,7 @@ public:
 	void SetDead(float Time);
 
 	UFUNCTION()
-	void PlayMontage(UAnimMontage* AnimMontage);
+	void PlayExecution(UAnimMontage* AnimMontage);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class USceneComponent> WarpPoint;
@@ -48,10 +50,17 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
 
+	UFUNCTION()
+	void SetEnemy(float InMaxHp, float InAttackDamage);
+
+	UFUNCTION()
+	void SetUI(UUserWidget* InUserWidget);
 public:
 	// GameplayTag
 	UPROPERTY(BlueprintReadOnly, Category = GameplayTags)
 	FGameplayTagContainer EnemyState;
+
+	FOnHpChangedDelegate OnHpChanged;
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = GameplayTags)
@@ -61,6 +70,15 @@ private:
 	FGameplayTag StunTag;
 
 private:
+	UFUNCTION()
+	void UpdateDissolve(float InTimeline);
+
+	UFUNCTION()
+	void SetDestroy();
+
+	UFUNCTION()
+	void SetCurrentHp(float InCurrentHp);
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UStaticMeshComponent> Weapon;
 
@@ -88,12 +106,18 @@ private:
 
 	FOnTimelineEvent OnDissolveTimelineFinished;
 
-	UFUNCTION()
-	void UpdateDissolve(float InTimeline);
-
-	UFUNCTION()
-	void SetDestroy();
+	UPROPERTY(VisibleAnywhere)
+	float MaxHp;
 
 	UPROPERTY(VisibleAnywhere)
-	float Hp;
+	float CurrentHp;
+
+	UPROPERTY(VisibleAnywhere)
+	float AttackDamage;
+
+	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess))
+	TObjectPtr<class UWidgetComponent> ExecutionWidget;
+
+	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess))
+	TObjectPtr<class UWidgetComponent> HpBarWidget;
 };

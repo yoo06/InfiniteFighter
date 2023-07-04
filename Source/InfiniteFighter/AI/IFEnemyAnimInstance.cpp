@@ -41,7 +41,11 @@ UIFEnemyAnimInstance::UIFEnemyAnimInstance()
     if (RANGE_ATTACK_MONTAGE.Succeeded())
         RangeAttackMontage = RANGE_ATTACK_MONTAGE.Object;
 
-    // bIsStunned = false;
+    static ConstructorHelpers::FObjectFinder<UAnimMontage>CONSTRUCT_MONTAGE
+    (TEXT("/Game/InFiniteFighter/AI/Animation/Movement/Construct_Montage.Construct_Montage"));
+    if (CONSTRUCT_MONTAGE.Succeeded())
+        ConstructMontage = CONSTRUCT_MONTAGE.Object;
+
 }
 
 void UIFEnemyAnimInstance::NativeInitializeAnimation()
@@ -112,4 +116,9 @@ void UIFEnemyAnimInstance::PlayAttackMontage()
 void UIFEnemyAnimInstance::PlayRangeAttackMontage()
 {
     Montage_Play(RangeAttackMontage);
+}
+
+void UIFEnemyAnimInstance::PlayConstructMontage()
+{
+    Montage_Play(ConstructMontage);
 }

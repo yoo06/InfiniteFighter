@@ -25,7 +25,7 @@ void UExecutionAssetData::CreateSequencePlayer(AActor* CineCamera)
 
 		LevelSequencePlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(GWorld, LevelSequence, Settings, SequenceActor);
 
-		SequenceActor->AddBindingByTag(TEXT("CineCameraActor"), CineCamera, true);
+		SequenceActor->AddBindingByTag(TEXT("CineCameraActor"), CineCamera);
 	}
 }
 

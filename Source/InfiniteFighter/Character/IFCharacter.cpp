@@ -107,7 +107,7 @@ AIFCharacter::AIFCharacter()
 		AimCurveFloat = AIM_CURVE_FLOAT.Object;
 
 	static ConstructorHelpers::FClassFinder<UIFAimWidget>AIM_HUD_C
-	(TEXT("/Game/InFiniteFighter/Characters/Widget/Aim_Hud.Aim_Hud_C"));
+	(TEXT("/Game/InFiniteFighter/Widget/Aim/Aim_Hud.Aim_Hud_C"));
 	if (AIM_HUD_C.Succeeded())
 		AimHUDClass = AIM_HUD_C.Class;
 
@@ -279,7 +279,7 @@ void AIFCharacter::PostInitializeComponents()
 	if (::IsValid(Axe))
 		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
 
-	// Creating the Axe and Attaching it to Back
+	// Creating CineCamera and Attaching it to Character
 	CineCamera = GetWorld()->SpawnActor<ACineCameraActor>(GetActorLocation() + FVector(-210.0f, 50.0f, 80.0f), GetActorRotation());
 	
 	CineCamera->GetCineCameraComponent()->SetCurrentFocalLength(25.0f);
@@ -422,13 +422,15 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 
 void AIFCharacter::SprintStart()
 {
-	if (!CharacterState.HasTagExact(SprintState) && (MovementVector.X >= -0.5 && MovementVector.X < 0.5 && MovementVector.Y > 0))
+	FVector2D MovementVectorNormal = MovementVector.GetSafeNormal();
+
+	if (!CharacterState.HasTagExact(SprintState) && (MovementVectorNormal.X >= -0.5 && MovementVectorNormal.X < 0.5 && MovementVectorNormal.Y > 0))
 	{
 		CharacterState.AddTag(SprintState);
 		CharacterState.RemoveTag(IdleState);
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 	}
-	else if (!CharacterState.HasTagExact(IdleState) && !(MovementVector.X >= -0.5 && MovementVector.X < 0.5 && MovementVector.Y > 0))
+	else if (!CharacterState.HasTagExact(IdleState) && !(MovementVectorNormal.X >= -0.5 && MovementVectorNormal.X < 0.5 && MovementVectorNormal.Y > 0))
 	{
 		CharacterState.AddTag(IdleState);
 		CharacterState.RemoveTag(SprintState);
@@ -619,7 +621,7 @@ void AIFCharacter::Execute()
 
 				// Play the montage
 				AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
-				Target->PlayMontage(ExecutionAssetData->VictimMontage);
+				Target->PlayExecution(ExecutionAssetData->VictimMontage);
 
 				// Reset the camera to center and play sequence
 				bUseControllerRotationYaw = false;
