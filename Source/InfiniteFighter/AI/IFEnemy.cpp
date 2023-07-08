@@ -70,6 +70,7 @@ AIFEnemy::AIFEnemy()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
 	bUseControllerRotationRoll  = false;
@@ -201,14 +202,14 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 {
     Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-    if (CurrentHp > 0)
+    if (DamageCauser == PlayerCharacter)
     {
-        if (DamageCauser == PlayerCharacter)
+        if (bCanBeAttacked)
         {
-            if (bCanBeAttacked)
+            SetCurrentHp(10);
+            UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
+            if (CurrentHp > 0)
             {
-				SetCurrentHp(1);
-				UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
                 // taking damage
                 PlayerCharacter->SetCameraShake();
                 AnimInstance->React(this, DamageCauser);
@@ -223,37 +224,46 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
                 // using timer to free animation
                 GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [&]()
-                    {
-                        PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
-                        AnimInstance->Montage_Resume(nullptr);
-                    },
-                    StiffFrame, false);
+                {
+                    PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
+                    AnimInstance->Montage_Resume(nullptr);
+                }, StiffFrame, false);
 
                 return DamageAmount;
             }
-        }
-        else if (DamageCauser == PlayerCharacter->GetAxe())
-        {
-			if (bCanBeAttacked)
-			{
-
-				SetCurrentHp(1);
-				UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
-				AnimInstance->React(this, DamageCauser);
-				bCanBeAttacked = false;
-
-				return DamageAmount;
-			}
+            else
+            {
+                AnimInstance->DeathAnim(this, DamageCauser);
+                SetDead(1.5f);
+            }
         }
     }
-    else
+    else if (DamageCauser == PlayerCharacter->GetAxe())
     {
-        AnimInstance->DeathAnim(this, DamageCauser);
-        SetDead(1.5f);
+        if (bCanBeAttacked)
+        {
+            SetCurrentHp(10);
+            UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
+            if (CurrentHp > 0)
+            {
+
+                AnimInstance->React(this, DamageCauser);
+                bCanBeAttacked = false;
+
+                return DamageAmount;
+            }
+            else
+            {
+                AnimInstance->DeathAnim(this, DamageCauser);
+                SetDead(1.5f);
+            }
+
+        }
     }
 
-    return 0;
+	return 0;
 }
+
 
 void AIFEnemy::ActivateStun()
 {
@@ -268,20 +278,12 @@ void AIFEnemy::SetEnemy(float InMaxHp, float InAttackDamage)
 	MaxHp		 = InMaxHp;
 	CurrentHp	 = MaxHp;
 	AttackDamage = InAttackDamage;
-	SetUI(HpBarWidget->GetWidget());
-}
-
-void AIFEnemy::SetUI(UUserWidget* InUserWidget)
-{
-	UIFHpBarWidget* HpBar = Cast<UIFHpBarWidget>(InUserWidget);
+	UIFHpBarWidget* HpBar = Cast<UIFHpBarWidget>(HpBarWidget->GetWidget());
 	if (::IsValid(HpBar))
 	{
 		HpBar->InitializeHp(MaxHp);
-		UE_LOG(LogTemp, Warning, TEXT("Valid"));
-		OnHpChanged.BindUObject(HpBar, &UIFHpBarWidget::UpdateHp);
 	}
 }
-
 
 void AIFEnemy::UpdateDissolve(float InTimeline)
 {

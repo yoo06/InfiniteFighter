@@ -9,8 +9,6 @@
 #include "Components/TimelineComponent.h"
 #include "IFEnemy.generated.h"
 
-DECLARE_DELEGATE_OneParam(FOnHpChangedDelegate, float)
-
 UCLASS()
 class INFINITEFIGHTER_API AIFEnemy : public ACharacter, public IGameplayTagAssetInterface
 {
@@ -53,14 +51,10 @@ public:
 	UFUNCTION()
 	void SetEnemy(float InMaxHp, float InAttackDamage);
 
-	UFUNCTION()
-	void SetUI(UUserWidget* InUserWidget);
 public:
 	// GameplayTag
 	UPROPERTY(BlueprintReadOnly, Category = GameplayTags)
 	FGameplayTagContainer EnemyState;
-
-	FOnHpChangedDelegate OnHpChanged;
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = GameplayTags)

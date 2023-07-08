@@ -61,6 +61,9 @@ protected:
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = CharacterState; };
 
 private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class AIFPlayerController> PlayerController;
+
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
 
@@ -122,12 +125,6 @@ private:
 	
 	UPROPERTY(VisibleAnywhere, Category = Weapon)
 	TObjectPtr<class AIFAxe> Axe;
-
-	UPROPERTY(VisibleAnywhere, Category = UI)
-	TObjectPtr<class UIFAimWidget> AimHUD;
-
-	UPROPERTY()
-	TSubclassOf<class UIFAimWidget> AimHUDClass;
 
 	UPROPERTY()
 	TObjectPtr<class UIFCharacterAnimInstance> AnimInstance;
