@@ -11,6 +11,10 @@
 #include "IFEnemyController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameplayTags/EnemyTag.h"
+#include "Components/WidgetComponent.h"
+#include "CommonUserWidget.h"
+#include "UI/IFHpBarWidget.h"
+#include "Stage/IFStage.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -50,8 +54,6 @@ AIFEnemy::AIFEnemy()
 	WarpPoint->SetRelativeRotation(FRotator(0.0f, 180.0f, 0.0f));
 	WarpPoint->SetupAttachment(RootComponent);
 
-	bCanBeAttacked = true;
-
 	// setting Timeline for Dissolve effect
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DISSOLVE_TIMELINE"));
 	DissolveTimeline->SetTimelineLength(1.0f);
@@ -67,14 +69,48 @@ AIFEnemy::AIFEnemy()
 	
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	GetCharacterMovement()->bUseRVOAvoidance = true;
+	GetCharacterMovement()->AvoidanceConsiderationRadius = 500.0f;
+
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
 	bUseControllerRotationRoll  = false;
 
-	StunTag = ENEMY_STUN;
+	ExecutionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("ExecutionWidget"));
+	ExecutionWidget->SetupAttachment(RootComponent);
+	ExecutionWidget->SetRelativeLocation(FVector(30.0f, 0.0f, 30.0f));
 
-	Hp = 10;
+	static ConstructorHelpers::FClassFinder<UCommonUserWidget>ExecutionWidgetRef
+	(TEXT("/Game/InFiniteFighter/Widget/Game/Execution.Execution_C"));
+	if (::IsValid(ExecutionWidgetRef.Class))
+	{
+		ExecutionWidget->SetWidgetClass(ExecutionWidgetRef.Class);
+		ExecutionWidget->SetWidgetSpace(EWidgetSpace::Screen);
+		ExecutionWidget->SetDrawSize(FVector2D(32.0f, 32.0f));
+		ExecutionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	HpBarWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpBarWidget"));
+	HpBarWidget->SetupAttachment(RootComponent);
+	HpBarWidget->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
+
+	static ConstructorHelpers::FClassFinder<UIFHpBarWidget>HpBarWidgetRef
+	(TEXT("/Game/InFiniteFighter/Widget/Hp/HpBar.HpBar_C"));
+	if (::IsValid(HpBarWidgetRef.Class))
+	{
+		HpBarWidget->SetWidgetClass(HpBarWidgetRef.Class);
+		HpBarWidget->SetWidgetSpace(EWidgetSpace::Screen);
+		HpBarWidget->SetDrawSize(FVector2D(180.0f, 15.0f));
+		HpBarWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	StunTag		   = ENEMY_STUN;
+	bCanBeAttacked = true;
+	MaxHp		   = 10;
+	CurrentHp	   = 10;
+	AttackDamage   = 10;
 }
 
 // Called when the game starts or when spawned
@@ -89,6 +125,18 @@ void AIFEnemy::BeginPlay()
 	AIController->SetTarget(PlayerCharacter);
 
 	PlayerCharacter->OnAttackEnd.AddUObject(this, &AIFEnemy::SetCanBeAttackedTrue);
+
+	FVector LookVector = PlayerCharacter->GetActorLocation() - GetActorLocation();
+	LookVector.Z = 0.0f;
+	FRotator TargetRot = FRotationMatrix::MakeFromX(LookVector).Rotator();
+	SetActorRotation(TargetRot);
+
+	ExecutionWidget->SetVisibility(false);
+
+	AnimInstance->PlayConstructMontage();
+	DissolveTimeline->ReverseFromEnd();
+
+	SetEnemy(100, 1);
 }
 
 void AIFEnemy::PostInitializeComponents()
@@ -97,13 +145,11 @@ void AIFEnemy::PostInitializeComponents()
 
 	AnimInstance = Cast<UIFEnemyAnimInstance>(GetMesh()->GetAnimInstance());
 
+	// setting dissolve timeline
 	OnDissolveTimelineFunction.BindDynamic(this, &AIFEnemy::UpdateDissolve);
 	DissolveTimeline->AddInterpFloat(DissolveCurveFloat, OnDissolveTimelineFunction);
 
-	OnDissolveTimelineFinished.BindDynamic(this, &AIFEnemy::SetDestroy);
-	DissolveTimeline->SetTimelineFinishedFunc(OnDissolveTimelineFinished);
-
-	DissolveTimeline->SetPlayRate(0.4f);
+	DissolveTimeline->SetPlayRate(0.8f);
 
 	// setting mesh material
 	UMaterialInterface* NewMaterial = LoadObject<UMaterialInterface>
@@ -137,13 +183,9 @@ void AIFEnemy::Tick(float DeltaTime)
 		float RotationDifference = (GetActorRotation() - TargetRot).GetNormalized().Yaw;
 		
 		if (FMath::Abs(RotationDifference) < 10)
-		{
 			SetActorRotation(TargetRot);
-		}
 		else
-		{
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 5));
-		}
 	}
 }
 
@@ -163,14 +205,14 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 {
     Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-    if (Hp > 0)
+    if (DamageCauser == PlayerCharacter)
     {
-        if (DamageCauser == PlayerCharacter)
+        if (bCanBeAttacked)
         {
-            if (bCanBeAttacked)
+			SetCurrentHp(PlayerCharacter->GetAttackDamage());
+            UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
+            if (CurrentHp > 0)
             {
-                Hp--;
-				UE_LOG(LogTemp, Warning, TEXT("%f"), Hp);
                 // taking damage
                 PlayerCharacter->SetCameraShake();
                 AnimInstance->React(this, DamageCauser);
@@ -185,43 +227,65 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
                 // using timer to free animation
                 GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [&]()
-                    {
-                        PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
-                        AnimInstance->Montage_Resume(nullptr);
-                    },
-                    StiffFrame, false);
+                {
+                    PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Resume(nullptr);
+                    AnimInstance->Montage_Resume(nullptr);
+                }, StiffFrame, false);
 
                 return DamageAmount;
             }
-        }
-        else if (DamageCauser == PlayerCharacter->GetAxe())
-        {
-			if (bCanBeAttacked)
-			{
-
-				Hp--;
-				UE_LOG(LogTemp, Warning, TEXT("%f"), Hp);
-				AnimInstance->React(this, DamageCauser);
-				bCanBeAttacked = false;
-
-				return DamageAmount;
-			}
+            else
+            {
+                AnimInstance->DeathAnim(this, DamageCauser);
+                SetDead(1.5f);
+            }
         }
     }
-    else
+    else if (DamageCauser == PlayerCharacter->GetAxe())
     {
-        AnimInstance->DeathAnim(this, DamageCauser);
-        SetDead(1.5f);
+        if (bCanBeAttacked)
+        {
+            SetCurrentHp(PlayerCharacter->GetAttackDamage());
+            UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
+            if (CurrentHp > 0)
+            {
+
+                AnimInstance->React(this, DamageCauser);
+                bCanBeAttacked = false;
+
+                return DamageAmount;
+            }
+            else
+            {
+                AnimInstance->DeathAnim(this, DamageCauser);
+                SetDead(1.5f);
+            }
+
+        }
     }
 
-    return 0;
+	return 0;
 }
+
 
 void AIFEnemy::ActivateStun()
 {
 	AnimInstance->StopAllMontages(0);
 	EnemyState.AddTag(StunTag);
-	GetWorld()->GetTimerManager().SetTimer(StunTimer, [this](){ EnemyState.RemoveTag(StunTag); }, 5.0f, false);
+	ExecutionWidget->SetVisibility(true);
+	GetWorld()->GetTimerManager().SetTimer(StunTimer, [this](){ EnemyState.RemoveTag(StunTag); ExecutionWidget->SetVisibility(false); }, 5.0f, false);
+}
+
+void AIFEnemy::SetEnemy(float InMaxHp, float InAttackDamage)
+{
+	MaxHp		 = InMaxHp;
+	CurrentHp	 = MaxHp;
+	AttackDamage = InAttackDamage;
+	UIFHpBarWidget* HpBar = Cast<UIFHpBarWidget>(HpBarWidget->GetWidget());
+	if (::IsValid(HpBar))
+	{
+		HpBar->InitializeHp(MaxHp);
+	}
 }
 
 void AIFEnemy::UpdateDissolve(float InTimeline)
@@ -235,17 +299,45 @@ void AIFEnemy::SetDestroy()
 	Destroy();
 }
 
+void AIFEnemy::SetCurrentHp(float InCurrentHp)
+{
+	CurrentHp -= InCurrentHp;
+	UIFHpBarWidget* HpBar = Cast<UIFHpBarWidget>(HpBarWidget->GetWidget());
+	if (::IsValid(HpBar))
+	{
+		HpBar->UpdateHp(CurrentHp);
+	}
+}
+
 void AIFEnemy::SetDead(float Time)
 {
+	// Hide UI
+	ExecutionWidget->SetVisibility(false);
+	HpBarWidget	   ->SetVisibility(false);
+
+	// setting Collision
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Dead"));
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
+
+	// Stop Moving
 	AIFEnemyController* AIController = Cast<AIFEnemyController>(GetController());
 	AIController->StopAI();
+	
+	// setting destruction method after Timeline
+	OnDissolveTimelineFinished.BindDynamic(this, &AIFEnemy::SetDestroy);
+	DissolveTimeline->SetTimelineFinishedFunc(OnDissolveTimelineFinished);
+
+	// setting Timeline
+	DissolveTimeline->SetPlayRate(0.4f);
+
 	FTimerHandle DeadTimer;
 	GetWorld()->GetTimerManager().SetTimer(DeadTimer, [this]() { DissolveTimeline->Play(); }, Time, false);
 }
 
-void AIFEnemy::PlayMontage(UAnimMontage* AnimMontage)
+void AIFEnemy::PlayExecution(UAnimMontage* AnimMontage)
 {
+	ExecutionWidget->SetVisibility(false);
+	HpBarWidget    ->SetVisibility(false);
+
 	AnimInstance->Montage_Play(AnimMontage);
 }

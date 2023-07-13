@@ -31,7 +31,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void PlayAttackMontage();
 
+	UFUNCTION(BlueprintCallable)
 	void PlayRangeAttackMontage();
+
+	UFUNCTION(BlueprintCallable)
+	void PlayConstructMontage();
 private:
 	// Montage
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
@@ -51,6 +55,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> RangeAttackMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> ConstructMontage;
 
 	// variables
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))

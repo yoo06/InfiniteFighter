@@ -33,7 +33,7 @@ public:
 	void SetDead(float Time);
 
 	UFUNCTION()
-	void PlayMontage(UAnimMontage* AnimMontage);
+	void PlayExecution(UAnimMontage* AnimMontage);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class USceneComponent> WarpPoint;
@@ -48,10 +48,19 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UIFEnemyAnimInstance> AnimInstance;
 
+	UFUNCTION()
+	void SetEnemy(float InMaxHp, float InAttackDamage);
+
 public:
 	// GameplayTag
 	UPROPERTY(BlueprintReadOnly, Category = GameplayTags)
 	FGameplayTagContainer EnemyState;
+
+	UFUNCTION()
+	void SetCurrentHp(float InCurrentHp);
+
+	UFUNCTION()
+	FORCEINLINE float GetAttackDamage() { return AttackDamage; };
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = GameplayTags)
@@ -61,6 +70,12 @@ private:
 	FGameplayTag StunTag;
 
 private:
+	UFUNCTION()
+	void UpdateDissolve(float InTimeline);
+
+	UFUNCTION()
+	void SetDestroy();
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UStaticMeshComponent> Weapon;
 
@@ -88,12 +103,18 @@ private:
 
 	FOnTimelineEvent OnDissolveTimelineFinished;
 
-	UFUNCTION()
-	void UpdateDissolve(float InTimeline);
-
-	UFUNCTION()
-	void SetDestroy();
+	UPROPERTY(VisibleAnywhere)
+	float MaxHp;
 
 	UPROPERTY(VisibleAnywhere)
-	float Hp;
+	float CurrentHp;
+
+	UPROPERTY(VisibleAnywhere)
+	float AttackDamage;
+
+	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess = true))
+	TObjectPtr<class UWidgetComponent> ExecutionWidget;
+
+	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess = true))
+	TObjectPtr<class UWidgetComponent> HpBarWidget;
 };

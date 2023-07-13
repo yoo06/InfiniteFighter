@@ -142,6 +142,9 @@ private:
 	TObjectPtr<class UParticleSystemComponent> TrailParticleComponent;
 
 	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UNiagaraComponent> TrailNiagaraComponent;
+
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystemComponent> CatchParticleComponent;
 
 	UPROPERTY(EditAnywhere)

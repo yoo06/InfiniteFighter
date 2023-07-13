@@ -7,6 +7,9 @@
 #include "InputMappingContext.h"
 #include "CommonInputSubsystem.h"
 #include "Camera/CameraComponent.h"
+#include "IFPlayerController.h"
+#include "CineCameraActor.h"
+#include "CineCameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -24,6 +27,9 @@
 #include "GameplayTags/CharacterTag.h"
 #include "GameplayTags/CharacterAnimationTag.h"
 #include "GameplayTags/EnemyTag.h"
+#include "UI/IFHUDWidget.h"
+#include "Item/IFItems.h"
+#include "Stage/IFStage.h"
 
 
 // Sets default values
@@ -98,16 +104,16 @@ AIFCharacter::AIFCharacter()
 	if (IA_EXECUTE.Succeeded())
 		ExecuteAction = IA_EXECUTE.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction>IA_INTERACTION
+	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Interaction.IA_Interaction"));
+	if (IA_INTERACTION.Succeeded())
+		InteractionAction = IA_INTERACTION.Object;
+
 	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AimCurve.AimCurve"));
 	if (AIM_CURVE_FLOAT.Succeeded())
 		AimCurveFloat = AIM_CURVE_FLOAT.Object;
-
-	static ConstructorHelpers::FClassFinder<UIFAimWidget>AIM_HUD_C
-	(TEXT("/Game/InFiniteFighter/Characters/Widget/Aim_Hud.Aim_Hud_C"));
-	if (AIM_HUD_C.Succeeded())
-		AimHUDClass = AIM_HUD_C.Class;
 
 	AimTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AIM_TIMELINE"));
 
@@ -122,6 +128,7 @@ AIFCharacter::AIFCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAMERA"));
 	Camera->SetupAttachment(SpringArm);
+
 	// positioning the skeletal mesh
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -90.0f), FRotator(0.0f, -90.0f, 0.0f));
 
@@ -150,7 +157,7 @@ AIFCharacter::AIFCharacter()
 
 	// setting the mesh and animation
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh>SKM_MESH
-	(TEXT("/Game/InFiniteFighter/Characters/Mannequin_UE4/Meshes/SK_Mannequin.SK_Mannequin"));
+	(TEXT("/Game/InFiniteFighter/Characters/Kratos/Kratos_Fix.Kratos_Fix"));
 	if (SKM_MESH.Succeeded())
 		GetMesh()->SetSkeletalMesh(SKM_MESH.Object);
 
@@ -167,11 +174,6 @@ AIFCharacter::AIFCharacter()
 	Target == nullptr;
 
 	// setting execution
-	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SLAM_REF
-	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SlamExecution.SlamExecution"));
-	if (SLAM_REF.Succeeded())
-		ExecutionArray.Add(SLAM_REF.Object);
-
 	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SWEEP_REF
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SweepExecution.SweepExecution"));
 	if (SWEEP_REF.Succeeded())
@@ -181,6 +183,11 @@ AIFCharacter::AIFCharacter()
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/TackleExecution.TackleExecution"));
 	if (TACKLE_REF.Succeeded())
 		ExecutionArray.Add(TACKLE_REF.Object);
+
+	static ConstructorHelpers::FObjectFinder<UExecutionAssetData>SLAM_REF
+	(TEXT("/Game/InFiniteFighter/Miscellaneous/DataAsset/SlamExecution.SlamExecution"));
+	if (SLAM_REF.Succeeded())
+		ExecutionArray.Add(SLAM_REF.Object);
 
 	// setting Particle
 	static ConstructorHelpers::FObjectFinder<UParticleSystem>PARRYING_PARTICLE
@@ -200,6 +207,10 @@ AIFCharacter::AIFCharacter()
 	DamagedState  = CHARACTER_DAMAGED;
 	ParryingState = CHARACTER_PARRYING;
 	BlockingState = CHARACTER_BLOCKING;
+
+	MaxHp		 = 100;
+	CurrentHp	 = 100;
+	AttackDamage = 10;
 }
 
 // Called when the game starts or when spawned
@@ -207,31 +218,23 @@ void AIFCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Adding mapping context to Enhanced Input Subsystem
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* SubSystem =
-			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-			SubSystem->AddMappingContext(DefaultContext, 0);
+	PlayerController = Cast<AIFPlayerController>(GetController());
 
-		InputSubsystem = ULocalPlayer::GetSubsystem<UCommonInputSubsystem>(PlayerController->GetLocalPlayer());
-	}
-	
-	// Clamping Camera angle
-	APlayerCameraManager* PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+    // Adding mapping context to Enhanced Input Subsystem
+    if (UEnhancedInputLocalPlayerSubsystem* SubSystem =
+        ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+        SubSystem->AddMappingContext(DefaultContext, 0);
 
-	if (::IsValid(PlayerCameraManager))
-	{
-		PlayerCameraManager->ViewPitchMin = -60.0f;
-		PlayerCameraManager->ViewPitchMax =  60.0f;
-	}
+    InputSubsystem = ULocalPlayer::GetSubsystem<UCommonInputSubsystem>(PlayerController->GetLocalPlayer());
 
 	RotateDefault();
 
-	AimHUD = CreateWidget<UIFAimWidget>(GetWorld()->GetFirstPlayerController(), AimHUDClass);
-
 	CharacterState.AddTag(IdleState);
 	CharacterState.AddTag(DamagedState);
+
+	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	if (::IsValid(HUDWidget))
+		HUDWidget->InitializeHp(MaxHp);
 }
 
 // Called every frame
@@ -262,6 +265,7 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(RecallAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::RecallAxe);
 		EnhancedInputComponent->BindAction(EvadeAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Evade);
 		EnhancedInputComponent->BindAction(ExecuteAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::Execute);
+		EnhancedInputComponent->BindAction(InteractionAction,  ETriggerEvent::Triggered, this, &AIFCharacter::Interaction);
 	}
 }
 
@@ -275,6 +279,17 @@ void AIFCharacter::PostInitializeComponents()
 
 	if (::IsValid(Axe))
 		Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
+
+	// Creating CineCamera and Attaching it to Character
+	CineCamera = GetWorld()->SpawnActor<ACineCameraActor>(GetActorLocation() + FVector(-210.0f, 50.0f, 80.0f), GetActorRotation());
+	
+	CineCamera->GetCineCameraComponent()->SetCurrentFocalLength(25.0f);
+	CineCamera->GetCineCameraComponent()->SetFilmbackPresetByName(FString::Printf(TEXT("16:9 Digital Film")));
+	
+	if (::IsValid(CineCamera))
+	{
+		CineCamera->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+	}
 
 	// cast IFCharacterAnimInstance to Character's AnimInstance
 	AnimInstance = Cast<UIFCharacterAnimInstance>(GetMesh()->GetAnimInstance());
@@ -301,7 +316,7 @@ void AIFCharacter::PostInitializeComponents()
 	AimTimeline->AddInterpFloat(AimCurveFloat, OnAimTimelineFunction);
 	
 	for(const auto& ExecutionAssetData : ExecutionArray)
-		ExecutionAssetData->CreateSequencePlayer();
+		ExecutionAssetData->CreateSequencePlayer(CineCamera);
 }
 
 float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -310,9 +325,10 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 	
 	if (CharacterState.HasTagExact(DamagedState))
 	{
+		auto Enemy = Cast<AIFEnemy>(DamageCauser);
+
 		if (CharacterState.HasTagExact(ParryingState))
-		{
-			auto Enemy = Cast<AIFEnemy>(DamageCauser);
+		{	
 			if (::IsValid(Enemy))
 			{
 				// set timer
@@ -344,6 +360,7 @@ float AIFCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 			CharacterState.RemoveTag(DamagedState);
 			GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { CharacterState.AddTag(DamagedState); }, 0.1f, false);
 			AnimInstance->React(this, DamageCauser);
+			SetCurrentHp(Enemy->GetAttackDamage());
 			return DamageAmount;
 		}
 	}
@@ -363,6 +380,43 @@ void AIFCharacter::SetCameraShake()
 AActor* AIFCharacter::GetAxe()
 {
 	return Axe;
+}
+
+void AIFCharacter::SetCurrentHp(float InCurrentHp)
+{
+	CurrentHp -= InCurrentHp;
+
+	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	if (::IsValid(HUDWidget))
+		HUDWidget->UpdateHp(CurrentHp);
+}
+
+void AIFCharacter::ApplyItem(UIFItemData* InItemData)
+{
+	switch (InItemData->Type)
+	{
+		case EItemType::Heal :
+		{
+			UIFHealItemData* HealItem = Cast<UIFHealItemData>(InItemData);
+			ensure(HealItem);
+			CurrentHp = FMath::Clamp(CurrentHp + HealItem->IncreaseHealthRate, CurrentHp, MaxHp);
+			
+			UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+			if (::IsValid(HUDWidget))
+				HUDWidget->UpdateHp(CurrentHp);
+
+			UE_LOG(LogTemp, Warning, TEXT("New Hp : %f"), CurrentHp);
+			break;
+		}
+		case EItemType::Attack :
+		{
+			UIFAttackItemData* AttackItem = Cast<UIFAttackItemData>(InItemData);
+			ensure(AttackItem);
+			AttackDamage *= AttackItem->IncreaseAttackRate;
+			UE_LOG(LogTemp, Warning, TEXT("New AttackDamage : %f"), AttackDamage);
+			break;
+		}
+	}
 }
 
 void AIFCharacter::Move(const FInputActionValue& Value)
@@ -387,10 +441,16 @@ void AIFCharacter::Move(const FInputActionValue& Value)
 		// add movement checking the type of input
 		ECommonInputType CurrentInputType = InputSubsystem->GetCurrentInputType();
 
-		if (CurrentInputType == ECommonInputType::MouseAndKeyboard) 
-			AddMovementInput(ScaledMovementInput);
-		else if (CurrentInputType == ECommonInputType::Gamepad)
-			AddMovementInput(ScaledMovementInput, ((MovementVector.Size() / 50) < 0.7f) ? 0.4f : 1.0f);
+        switch (CurrentInputType)
+        {
+			case ECommonInputType::MouseAndKeyboard :
+			    AddMovementInput(ScaledMovementInput);
+			    break;
+
+			case ECommonInputType::Gamepad :
+			    AddMovementInput(ScaledMovementInput, ((MovementVector.Size() / 50) < 0.7f) ? 0.4f : 1.0f);
+			    break;
+        }
 	}
 }
 
@@ -408,13 +468,15 @@ void AIFCharacter::Look(const FInputActionValue& Value)
 
 void AIFCharacter::SprintStart()
 {
-	if (!CharacterState.HasTagExact(SprintState) && MovementVector.Y >= 0)
+	FVector2D MovementVectorNormal = MovementVector.GetSafeNormal();
+
+	if (!CharacterState.HasTagExact(SprintState) && (MovementVectorNormal.X >= -0.5 && MovementVectorNormal.X < 0.5 && MovementVectorNormal.Y > 0))
 	{
 		CharacterState.AddTag(SprintState);
 		CharacterState.RemoveTag(IdleState);
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 	}
-	else if (!CharacterState.HasTagExact(IdleState) && MovementVector.Y < 0)
+	else if (!CharacterState.HasTagExact(IdleState) && !(MovementVectorNormal.X >= -0.5 && MovementVectorNormal.X < 0.5 && MovementVectorNormal.Y > 0))
 	{
 		CharacterState.AddTag(IdleState);
 		CharacterState.RemoveTag(SprintState);
@@ -525,11 +587,13 @@ void AIFCharacter::AimStart()
 {
 	RotateToCamera();
 
+	UIFAimWidget* AimWidget = Cast<UIFAimWidget>(PlayerController->GetHUD()->GetAimWidget());
+
 	if (CharacterState.HasTagExact(IdleState))
 	{
 		CharacterState.RemoveTag(IdleState);
 		CharacterState.AddTag(AimState);
-		AimHUD->AddToViewport();
+		AimWidget->SetVisibility(ESlateVisibility::Visible);
 		AnimInstance->AnimState.AddTag(ANIM_AIM);
 		GetCharacterMovement()->MaxWalkSpeed = 200.0f;
 		AimTimeline->Play();
@@ -545,22 +609,24 @@ void AIFCharacter::AimStart()
 
 	if (bResult)
 	{
-		if (AimHUD->GetAimTargetUI())
-			AimHUD->SetAimTargetUI(true);
+		if (AimWidget->GetAimTargetUI())
+			AimWidget->SetAimTargetUI(true);
 	}
 	else
 	{
-		if (!AimHUD->GetAimTargetUI())
-			AimHUD->SetAimTargetUI(false);
+		if (!AimWidget->GetAimTargetUI())
+			AimWidget->SetAimTargetUI(false);
 	}
 
 }
 
 void AIFCharacter::AimEnd()
 {
+	UIFAimWidget* AimWidget = Cast<UIFAimWidget>(PlayerController->GetHUD()->GetAimWidget());
+
 	if(GetVelocity().Size() == 0) RotateDefault();
 
-	AimHUD->RemoveFromParent();
+	AimWidget->SetVisibility(ESlateVisibility::Hidden);
 
 	CharacterState.RemoveTag(AimState);
 	CharacterState.AddTag(IdleState);
@@ -590,7 +656,7 @@ void AIFCharacter::Execute()
 			{
 				Target = TargetRef;
 
-				const int RandNum = FMath::RandRange(0, 2);
+				const int RandNum = FMath::RandRange(0, ExecutionArray.Num() - 1);
 
 				const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
@@ -605,7 +671,7 @@ void AIFCharacter::Execute()
 
 				// Play the montage
 				AnimInstance->Montage_Play(ExecutionAssetData->AttackMontage);
-				Target->PlayMontage(ExecutionAssetData->VictimMontage);
+				Target->PlayExecution(ExecutionAssetData->VictimMontage);
 
 				// Reset the camera to center and play sequence
 				bUseControllerRotationYaw = false;
@@ -615,13 +681,28 @@ void AIFCharacter::Execute()
 				Target->SetDead(6);
 				Target = nullptr;
 
+				GetCapsuleComponent()->SetCollisionProfileName(TEXT("Dead"));
+				GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
+
 				CharacterState.RemoveTag(DamagedState);
-				GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() { OnExecutionEnd.Broadcast(); }, ExecutionAssetData->Time, false);
+				GetWorld()->GetTimerManager().SetTimer(DamageTimer, [this]() 
+					{ 
+						OnExecutionEnd.Broadcast(); 
+						GetCapsuleComponent()->SetCollisionProfileName(TEXT("Character"));
+						GetMesh()->SetCollisionProfileName(TEXT("CharacterMesh"));
+					}, ExecutionAssetData->Time, false);
 
 				return;
 			}
 		}
 	}
+}
+
+void AIFCharacter::Interaction()
+{
+	AIFStage* Stage = Cast<AIFStage>(UGameplayStatics::GetActorOfClass(GetWorld(), AIFStage::StaticClass()));
+	if (::IsValid(Stage))
+		Stage->StartGame();
 }
 
 void AIFCharacter::UpdateAimCamera(float NewArmLength)
@@ -631,13 +712,25 @@ void AIFCharacter::UpdateAimCamera(float NewArmLength)
 
 void AIFCharacter::Throw()
 {
-	if(!AnimInstance->IsAnyMontagePlaying())
+	if (!AnimInstance->IsAnyMontagePlaying())
+	{
+		UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+		if(::IsValid(HUDWidget))
+		{
+			HUDWidget->SetAxeIcon(false);
+			HUDWidget->SetRecallIcon(true);
+		}
 		AnimInstance->PlayThrowMontage();
+	}
 }
 
 void AIFCharacter::Draw()
 {
 	FName WeaponSocket(TEXT("Weapon_R"));
+
+	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	if(::IsValid(HUDWidget))
+		HUDWidget->SetAxeIcon(true);
 
 	Axe->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 	Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
@@ -646,6 +739,10 @@ void AIFCharacter::Draw()
 void AIFCharacter::Sheathe()
 {
 	FName BackSocket(TEXT("Weapon_Back"));
+	
+	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	if (::IsValid(HUDWidget))
+		HUDWidget->SetAxeIcon(false);
 
 	Axe->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 	Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
@@ -693,6 +790,10 @@ void AIFCharacter::RecallAxe()
 		AnimInstance->AnimState.AddTag(ANIM_RECALL);
 		AnimInstance->SetCanDoNextAction(false);
 		Axe->Recall();
+
+		UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+		HUDWidget->SetRecallIcon(false);
+
 	}
 }
 
@@ -702,7 +803,11 @@ void AIFCharacter::CatchAxe()
 	AnimInstance->AnimState.AddTag(ANIM_AXEHOLDING);
 	AnimInstance->AnimState.AddTag(ANIM_DRAW);
     AnimInstance->SetCanDoNextAction(true);
-    FName WeaponSocket(TEXT("Weapon_R"));
+	
+	Draw();
+
+    /*FName WeaponSocket(TEXT("Weapon_R"));
     Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+	*/
 	SetCameraShake();
 }
