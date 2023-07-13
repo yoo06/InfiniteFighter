@@ -8,6 +8,7 @@
 #include "Components/TimelineComponent.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
+#include "Interface/IFApplyItemInterface.h"
 #include "IFCharacter.generated.h"
 
 DECLARE_DELEGATE(FOnExecuteDelegate);
@@ -15,7 +16,7 @@ DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnExecutionEndDelegate);
 
 UCLASS()
-class INFINITEFIGHTER_API AIFCharacter : public ACharacter, public IGameplayTagAssetInterface
+class INFINITEFIGHTER_API AIFCharacter : public ACharacter, public IGameplayTagAssetInterface, public IIFApplyItemInterface
 {
 	GENERATED_BODY()
 
@@ -56,6 +57,15 @@ public:
 
 	FGameplayTagContainer CharacterState;
 
+	UFUNCTION()
+	FORCEINLINE float GetAttackDamage() { return AttackDamage; };
+
+	UFUNCTION()
+	void SetCurrentHp(float InCurrentHp);
+
+	UFUNCTION()
+	virtual void ApplyItem(class UIFItemData* InItemData) override;
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = GameplayTags)
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = CharacterState; };
@@ -66,6 +76,15 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputMappingContext> DefaultContext;
+
+	UPROPERTY(VisibleAnywhere)
+	float MaxHp;
+
+	UPROPERTY(VisibleAnywhere)
+	float CurrentHp;
+
+	UPROPERTY(VisibleAnywhere)
+	float AttackDamage;
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> MoveAction;
@@ -102,6 +121,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> ExecuteAction;
+
+	UPROPERTY(VisibleAnywhere, Category = Input)
+	TObjectPtr<class UInputAction> InteractionAction;
 
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class UCameraComponent> Camera;
@@ -199,6 +221,8 @@ private:
 	void Evade();
 
 	void Execute();
+
+	void Interaction();
 
 	UFUNCTION()
 	void UpdateAimCamera(float NewArmLength);

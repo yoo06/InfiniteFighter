@@ -13,7 +13,8 @@
 				"CommonInput",
 				"UMG",
 				"EnhancedInput",
-				"AIModule"
+				"AIModule",
+				"CommonUI"
 			]
 		}
 	],

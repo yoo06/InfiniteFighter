@@ -4,6 +4,12 @@
 #include "Character/IFPlayerController.h"
 #include "UI/IFHUDWidget.h"
 #include "UI/IFAimWidget.h"
+#include "Interface/IFApplyItemInterface.h"
+#include "Kismet/GameplayStatics.h"
+#include "UI/IFItemButton.h"
+#include "Item/IFItemData.h"
+#include "IFCharacter.h"
+#include "Stage/IFStage.h"
 
 AIFPlayerController::AIFPlayerController()
 {
@@ -16,6 +22,13 @@ AIFPlayerController::AIFPlayerController()
 UIFHUDWidget* AIFPlayerController::GetHUD()
 {
     return HUDWidget;
+}
+
+void AIFPlayerController::SetRewardHUD()
+{
+    HUDWidget->SetItemSlotVisible(true);
+    FInputModeUIOnly UIOnlyInputMode;
+    SetInputMode(UIOnlyInputMode);
 }
 
 void AIFPlayerController::BeginPlay()
@@ -33,4 +46,24 @@ void AIFPlayerController::BeginPlay()
     HUDWidget->GetAimWidget()->SetVisibility(ESlateVisibility::Hidden);
     HUDWidget->SetAxeIcon(false);
     HUDWidget->SetRecallIcon(false);
+    HUDWidget->SetItemSlotVisible(false);
+
+    for (const auto& Button : HUDWidget->Buttons)
+    {
+        Button->OnClicked().AddLambda([&]
+            {
+                IIFApplyItemInterface* PlayerCharacter = Cast<IIFApplyItemInterface>((GetCharacter()));
+                if(PlayerCharacter)
+                    PlayerCharacter->ApplyItem(Button->GetItem());
+
+                HUDWidget->SetItemSlotVisible(false);
+
+                AIFStage* Stage = Cast<AIFStage>(UGameplayStatics::GetActorOfClass(GetCharacter()->GetWorld(), AIFStage::StaticClass()));
+                if (::IsValid(Stage))
+                    Stage->SetStage();
+
+                FInputModeGameOnly GameOnlyInputMode;
+                SetInputMode(GameOnlyInputMode);
+            });
+    }
 }

@@ -56,6 +56,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = GameplayTags)
 	FGameplayTagContainer EnemyState;
 
+	UFUNCTION()
+	void SetCurrentHp(float InCurrentHp);
+
+	UFUNCTION()
+	FORCEINLINE float GetAttackDamage() { return AttackDamage; };
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = GameplayTags)
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override { TagContainer = EnemyState; };
@@ -69,9 +75,6 @@ private:
 
 	UFUNCTION()
 	void SetDestroy();
-
-	UFUNCTION()
-	void SetCurrentHp(float InCurrentHp);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<class UStaticMeshComponent> Weapon;
@@ -109,9 +112,9 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	float AttackDamage;
 
-	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess))
+	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess = true))
 	TObjectPtr<class UWidgetComponent> ExecutionWidget;
 
-	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess))
+	UPROPERTY(VisibleAnywhere, Category = UI, meta = (AllowPrivateAccess = true))
 	TObjectPtr<class UWidgetComponent> HpBarWidget;
 };

@@ -20,6 +20,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void PostInitializeComponents() override;
+
 public:	
 	FORCEINLINE FIFStageTable GetStageTable(int32 InLevel) const { return StageTable.IsValidIndex(InLevel - 1) ? StageTable[InLevel - 1] : FIFStageTable(); }
 
@@ -28,14 +30,41 @@ public:
 	UPROPERTY()
 	int32 MaxLevel;
 
+	UFUNCTION()
+	void SetReward(AActor* DestroyedActor);
 
+	UFUNCTION()
+	void SetStage();
+
+	UFUNCTION()
+	void StartGame();
 private:
-	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess))
+	UPROPERTY(VisibleAnywhere, Category = Stage, meta = (AllowPrivateAccess = true))
 	TObjectPtr<class USceneComponent> SceneComponent;
 
 	TArray<FIFStageTable> StageTable;
 
+	UPROPERTY(VisibleAnywhere, Category = Stage, meta = (AllowPrivateAccess = true))
 	int32 CurrentLevel;
 
-	void SetStage();
+	UPROPERTY(VisibleAnywhere, Category = Stage, meta = (AllowPrivateAccess = true))
+	int32 SpawnNumber;
+
+	UPROPERTY(VisibleAnywhere, Category = Stage)
+	TObjectPtr<class UBoxComponent> StageTriggerBox;
+
+	UPROPERTY(VisibleAnywhere, Category = Stage)
+	TObjectPtr<class UBoxComponent> StageBlockerBox;
+
+	UPROPERTY(VisibleAnywhere, Category = UI)
+	TObjectPtr<class UWidgetComponent> InteractionWidget;
+
+	bool bCanGameStart;
+	UFUNCTION()
+	void OnTriggerBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+		void OnTriggerBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+			UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };

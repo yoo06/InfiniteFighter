@@ -19,6 +19,8 @@ public:
 
 	class UIFHUDWidget* GetHUD();
 
+	void SetRewardHUD();
+
 protected:
 	virtual void BeginPlay() override;
 

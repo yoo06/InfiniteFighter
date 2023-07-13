@@ -7,7 +7,6 @@
 
 void UIFIconWidget::NativeConstruct()
 {
-
 }
 
 void UIFIconWidget::SetAxeIcon(bool bIsAxeHolding)

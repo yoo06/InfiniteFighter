@@ -14,6 +14,7 @@
 #include "Components/WidgetComponent.h"
 #include "CommonUserWidget.h"
 #include "UI/IFHpBarWidget.h"
+#include "Stage/IFStage.h"
 
 // Sets default values
 AIFEnemy::AIFEnemy()
@@ -70,6 +71,8 @@ AIFEnemy::AIFEnemy()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	GetCharacterMovement()->bUseRVOAvoidance = true;
+	GetCharacterMovement()->AvoidanceConsiderationRadius = 500.0f;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
@@ -206,7 +209,7 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
     {
         if (bCanBeAttacked)
         {
-            SetCurrentHp(10);
+			SetCurrentHp(PlayerCharacter->GetAttackDamage());
             UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
             if (CurrentHp > 0)
             {
@@ -242,7 +245,7 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
     {
         if (bCanBeAttacked)
         {
-            SetCurrentHp(10);
+            SetCurrentHp(PlayerCharacter->GetAttackDamage());
             UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
             if (CurrentHp > 0)
             {
