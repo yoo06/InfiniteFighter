@@ -139,9 +139,6 @@ private:
 	FOnTimelineEvent OnReturnTimelineFinished;
 
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<class UParticleSystemComponent> TrailParticleComponent;
-
-	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UNiagaraComponent> TrailNiagaraComponent;
 
 	UPROPERTY(EditAnywhere)

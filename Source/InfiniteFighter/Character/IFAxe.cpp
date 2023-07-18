@@ -44,9 +44,6 @@ AIFAxe::AIFAxe()
 	Axe->SetCollisionProfileName(TEXT("Weapon"));
 
 	// Setting Particles
-	TrailParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TRAIL_PARTICLE_COMPONENT"));
-	TrailParticleComponent->SetupAttachment(Axe);
-
 	TrailNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TRAIL_NIAGARA_COMPONENT"));
 	TrailNiagaraComponent->SetupAttachment(Axe);
 	
@@ -56,11 +53,6 @@ AIFAxe::AIFAxe()
 		TrailNiagaraComponent->SetAsset(TRAIL_NIAGARA.Object);
 
 	TrailNiagaraComponent->bAutoActivate = false;
-
-	static ConstructorHelpers::FObjectFinder<UParticleSystem>TRAIL_PARTICLE
-	(TEXT("/Game/InFiniteFighter/FX/Leviathon/P_AxeWeaponTrail.P_AxeWeaponTrail"));
-	if (TRAIL_PARTICLE.Succeeded())
-		TrailParticleComponent->SetTemplate(TRAIL_PARTICLE.Object);
 
 	CatchParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("CATCH_PARTICLE_COMPONENT"));
 	CatchParticleComponent->SetupAttachment(Axe);
@@ -232,9 +224,6 @@ void AIFAxe::Throw()
 	AxeRotateTimeline->PlayFromStart();
 	AxeRotateTimeline->SetPlayRate(2.5f);
 
-	// TrailParticleComponent->BeginTrails(TEXT("Top"), TEXT("Bottom"), ETrailWidthMode_FromCentre, 1.0f);
-	// TrailParticleComponent->ActivateSystem();
-
 	TrailNiagaraComponent->ActivateSystem();
 
 	Character->OnAttackEnd.Broadcast();
@@ -293,9 +282,10 @@ void AIFAxe::LodgePosition(const FHitResult& InHit)
 	SetAxeState(LodgedTag);
 
 	// Stopping the movements
-	ProjectileMovement->Deactivate();
-	AxeGravityTimeline->Stop();
-	AxeRotateTimeline ->Stop();
+	TrailNiagaraComponent->Deactivate();
+	ProjectileMovement	 ->Deactivate();
+	AxeGravityTimeline	 ->Stop();
+	AxeRotateTimeline	 ->Stop();
 
 	//resetting the rotation
 	Pivot->SetRelativeRotation(FRotator::ZeroRotator);
@@ -347,6 +337,8 @@ void AIFAxe::UpdateWiggle(float InWigglePosition)
 void AIFAxe::RecallMovement()
 {
 	SetAxeState(ReturningTag);
+
+	TrailNiagaraComponent->ActivateSystem();
 
 	// Initialize components for recall
 	DistanceFromCharacter	  = FMath::Clamp((GetActorLocation() - Character->GetMesh()->GetSocketLocation(TEXT("Weapon_R"))).Size(), 0, 3000);
@@ -434,11 +426,9 @@ void AIFAxe::UpdateTiltEnd(float InValue)
 
 void AIFAxe::CatchAxe()
 {
-	
 	SetAxeState(IdleTag);
 
 	OnAxeCatch.ExecuteIfBound();
-	// TrailParticleComponent->EndTrails();
 	TrailNiagaraComponent->Deactivate();
 
 	CatchParticleComponent->Activate();

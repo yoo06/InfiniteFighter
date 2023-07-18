@@ -125,6 +125,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Input)
 	TObjectPtr<class UInputAction> InteractionAction;
 
+	UPROPERTY(VisibleAnywhere, Category = Input)
+	TObjectPtr<class UInputAction> StartAction;
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	TObjectPtr<class UCameraComponent> Camera;
 
@@ -223,6 +226,10 @@ private:
 	void Execute();
 
 	void Interaction();
+
+	void StartMenu();
+
+	void SetDead();
 
 	UFUNCTION()
 	void UpdateAimCamera(float NewArmLength);

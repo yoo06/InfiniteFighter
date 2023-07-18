@@ -71,6 +71,11 @@ UIFCharacterAnimInstance::UIFCharacterAnimInstance()
 	if (BACK_DOWN_MONTAGE.Succeeded())
 		BackDownMontage = BACK_DOWN_MONTAGE.Object;
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DEATH_MONTAGE
+	(TEXT("/Game/InFiniteFighter/Characters/Animation/Combat/StandingDeath_Montage.StandingDeath_Montage"));
+	if (DEATH_MONTAGE.Succeeded())
+		DeathMontage = DEATH_MONTAGE.Object;
+
 	// Dodge Montages
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DODGE_BACK_MONTAGE
 	(TEXT("/Game/InFiniteFighter/Characters/Animation/Evade/DodgeBackward_Root_Montage.DodgeBackward_Root_Montage"));
@@ -432,4 +437,10 @@ void UIFCharacterAnimInstance::AnimNotify_EndParryingPoint()
 const FName UIFCharacterAnimInstance::GetAttackMontageSection(const int32& Section)
 {
 	return FName(*FString::Printf(TEXT("Attack%d"), Section));
+}
+
+void UIFCharacterAnimInstance::PlayDeathMontage()
+{
+	StopAllMontages(1);
+	Montage_Play(DeathMontage);
 }

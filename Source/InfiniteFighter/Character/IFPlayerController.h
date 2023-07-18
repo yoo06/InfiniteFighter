@@ -17,16 +17,42 @@ class INFINITEFIGHTER_API AIFPlayerController : public APlayerController
 public:
 	AIFPlayerController();
 
-	class UIFHUDWidget* GetHUD();
+	class UIFHUD* GetHUD();
 
 	void SetRewardHUD();
+
+	UFUNCTION()
+	void OpenPauseMenu();
 
 protected:
 	virtual void BeginPlay() override;
 
 private:
-	UPROPERTY()
-	TObjectPtr<class UIFHUDWidget> HUDWidget;
+	void ClosePauseMenu();
 
-	TSubclassOf<class UIFHUDWidget> HUDWidgetClass;
+	UFUNCTION()
+	void OpenGameOver();
+
+	UFUNCTION()
+	void OpenGameClear();
+private:
+	UPROPERTY()
+	TObjectPtr<class UIFHUD> HUDWidget;
+
+	TSubclassOf<class UIFHUD> HUDWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<class UIFPauseMenu> PauseWidget;
+	
+	TSubclassOf<class UIFPauseMenu> PauseWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<class UIFGameOver> GameOverWidget;
+
+	TSubclassOf<class UIFGameOver> GameOverWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<class UCommonActivatableWidget> GameClearWidget;
+
+	TSubclassOf<class UCommonActivatableWidget> GameClearWidgetClass;
 };

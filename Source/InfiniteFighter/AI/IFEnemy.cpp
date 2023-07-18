@@ -209,7 +209,9 @@ float AIFEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
     {
         if (bCanBeAttacked)
         {
-			SetCurrentHp(PlayerCharacter->GetAttackDamage());
+			if (!PlayerCharacter->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("Character.ParryingState"))))
+				SetCurrentHp(PlayerCharacter->GetAttackDamage());
+
             UE_LOG(LogTemp, Warning, TEXT("%f"), CurrentHp);
             if (CurrentHp > 0)
             {
@@ -311,6 +313,8 @@ void AIFEnemy::SetCurrentHp(float InCurrentHp)
 
 void AIFEnemy::SetDead(float Time)
 {
+	EnemyState.RemoveTag(StunTag);
+
 	// Hide UI
 	ExecutionWidget->SetVisibility(false);
 	HpBarWidget	   ->SetVisibility(false);
@@ -336,6 +340,8 @@ void AIFEnemy::SetDead(float Time)
 
 void AIFEnemy::PlayExecution(UAnimMontage* AnimMontage)
 {
+	EnemyState.RemoveTag(StunTag);
+
 	ExecutionWidget->SetVisibility(false);
 	HpBarWidget    ->SetVisibility(false);
 

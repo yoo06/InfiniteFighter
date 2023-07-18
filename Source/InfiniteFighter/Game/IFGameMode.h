@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "IFGameMode.generated.h"
 
+DECLARE_DELEGATE(FOnGameOverDelegate)
+DECLARE_DELEGATE(FOnGameClearDelegate)
 /**
  * 
  */
@@ -16,4 +18,8 @@ class INFINITEFIGHTER_API AIFGameMode : public AGameModeBase
 	
 public:
 	AIFGameMode();
+
+	FOnGameOverDelegate OnGameOver;
+
+	FOnGameClearDelegate OnGameClear;
 };
