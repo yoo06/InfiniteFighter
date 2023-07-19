@@ -546,7 +546,7 @@ void AIFCharacter::WeakAttack()
 			// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
 			float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Enemy->GetActorLocation() - GetActorLocation()).GetSafeNormal());
 			
-			if (DotProduct > 0.2)
+			if (DotProduct > 0.8)
 			{
 				// set the closest Enemy to Target
 				Target = Cast<AIFEnemy>(Enemy);

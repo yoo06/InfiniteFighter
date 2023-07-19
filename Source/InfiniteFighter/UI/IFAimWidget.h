@@ -17,8 +17,8 @@ class INFINITEFIGHTER_API UIFAimWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
-	FORCEINLINE void SetAimTargetUI(const bool& bIsTarget);
-	FORCEINLINE const bool GetAimTargetUI() const;
+	void SetAimTargetUI(const bool& bIsTarget);
+	const bool GetAimTargetUI() const;
 
 private:
 	UPROPERTY(meta = (BindWidget))
