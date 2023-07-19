@@ -10,6 +10,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "CommonUserWidget.h"
+#include "Game/IFGameMode.h"
 
 // Sets default values
 AIFStage::AIFStage()
@@ -28,7 +29,8 @@ AIFStage::AIFStage()
 		Algo::Transform(ValueArray, StageTable, [](uint8* Value) { return *reinterpret_cast<FIFStageTable*>(Value); });
 	}
 
-	MaxLevel = StageTable.Num();
+	MaxLevel = StageTable.Num()- 1;
+	// MaxLevel = 2;
 
 	// setting Stage Blocker
 	StageBlockerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("StageBlocker"));
@@ -40,13 +42,13 @@ AIFStage::AIFStage()
 	// setting Stage Trigger Box
 	StageTriggerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("StageTrigger"));
 	StageTriggerBox->SetupAttachment(SceneComponent);
-	StageTriggerBox->SetRelativeLocation(FVector(-1200.0f, 700.0f, -350.0f));
+	StageTriggerBox->SetRelativeLocation(FVector(-1200.0f, 250.0f, -350.0f));
 	StageTriggerBox->SetBoxExtent(FVector(150.0f, 150.0f, 150.0f));
 	
 	// setting Interaction
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidget->SetupAttachment(StageTriggerBox);
-	InteractionWidget->SetRelativeLocation(FVector(0.0f, 0.0f, 30.0f));
+	InteractionWidget->SetRelativeLocation(FVector(0.0f, 300.0f, 30.0f));
 
 	static ConstructorHelpers::FClassFinder<UCommonUserWidget>InteractionWidgetRef
 	(TEXT("/Game/InFiniteFighter/Widget/Game/Interaction.Interaction_C"));
@@ -86,7 +88,7 @@ void AIFStage::SetStage()
 	{
 		float Radius = 1000.0f;
 		float VectorZ = GetActorLocation().Z;
-		FVector RandomPoint = GetActorLocation() + UKismetMathLibrary::RandomUnitVector() * FMath::FRandRange(0.0f, Radius);
+		FVector RandomPoint = GetActorLocation() + UKismetMathLibrary::RandomUnitVector() * FMath::FRandRange(500.0f, Radius);
 		RandomPoint.Z = VectorZ + 88.0f;
 		FTransform SpawnTransform(RandomPoint);
 		AIFEnemy* Enemy = GetWorld()->SpawnActor<AIFEnemy>(RandomPoint, FRotator::ZeroRotator);
@@ -101,11 +103,14 @@ void AIFStage::SetStage()
 
 void AIFStage::StartGame()
 {
-	StageBlockerBox->SetCollisionProfileName(TEXT("BlockAll"));
-	StageTriggerBox->SetCollisionProfileName(TEXT("NoCollision"));
-	InteractionWidget->SetVisibility(false);
-	bCanGameStart = false;
-	SetStage();
+	if (bCanGameStart)
+	{
+		StageBlockerBox->SetCollisionProfileName(TEXT("InvisibleWall"));
+		StageTriggerBox->SetCollisionProfileName(TEXT("NoCollision"));
+		InteractionWidget->SetVisibility(false);
+		bCanGameStart = false;
+		SetStage();
+	}
 }
 
 void AIFStage::OnTriggerBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
@@ -136,6 +141,15 @@ void AIFStage::SetReward(AActor* DestroyedActor)
 	if (SpawnNumber == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StageEnd"));
+		if (CurrentLevel == MaxLevel)
+		{
+			auto GameMode = Cast<AIFGameMode>(GetWorld()->GetAuthGameMode());
+			if (::IsValid(GameMode))
+			{
+				GameMode->OnGameClear.ExecuteIfBound();
+				return;
+			}
+		}
 		CurrentLevel++;
 		auto PlayerController = Cast<AIFPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 		if (::IsValid(PlayerController))

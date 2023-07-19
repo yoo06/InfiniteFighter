@@ -27,9 +27,10 @@
 #include "GameplayTags/CharacterTag.h"
 #include "GameplayTags/CharacterAnimationTag.h"
 #include "GameplayTags/EnemyTag.h"
-#include "UI/IFHUDWidget.h"
+#include "UI/IFHUD.h"
 #include "Item/IFItems.h"
 #include "Stage/IFStage.h"
+#include "Game/IFGameMode.h"
 
 
 // Sets default values
@@ -109,6 +110,11 @@ AIFCharacter::AIFCharacter()
 	if (IA_INTERACTION.Succeeded())
 		InteractionAction = IA_INTERACTION.Object;
 
+	static ConstructorHelpers::FObjectFinder<UInputAction>IA_START
+	(TEXT("/Game/InFiniteFighter/Input/Actions/IA_Start.IA_Start"));
+	if (IA_START.Succeeded())
+		StartAction = IA_START.Object;
+
 	// Setting properties for Aiming the Axe
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>AIM_CURVE_FLOAT
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/AimCurve.AimCurve"));
@@ -142,6 +148,7 @@ AIFCharacter::AIFCharacter()
 	SpringArm->bInheritPitch		    = true;
 	SpringArm->bInheritYaw			    = true;
 	SpringArm->bInheritRoll			    = true;
+
 	// enabling camera lag for a smoother look
 	SpringArm->bEnableCameraLag		    = true;
 	SpringArm->bEnableCameraRotationLag = true;
@@ -232,7 +239,7 @@ void AIFCharacter::BeginPlay()
 	CharacterState.AddTag(IdleState);
 	CharacterState.AddTag(DamagedState);
 
-	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 	if (::IsValid(HUDWidget))
 		HUDWidget->InitializeHp(MaxHp);
 }
@@ -266,6 +273,7 @@ void AIFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(EvadeAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::Evade);
 		EnhancedInputComponent->BindAction(ExecuteAction,	   ETriggerEvent::Triggered, this, &AIFCharacter::Execute);
 		EnhancedInputComponent->BindAction(InteractionAction,  ETriggerEvent::Triggered, this, &AIFCharacter::Interaction);
+		EnhancedInputComponent->BindAction(StartAction,		   ETriggerEvent::Triggered, this, &AIFCharacter::StartMenu);
 	}
 }
 
@@ -386,9 +394,14 @@ void AIFCharacter::SetCurrentHp(float InCurrentHp)
 {
 	CurrentHp -= InCurrentHp;
 
-	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 	if (::IsValid(HUDWidget))
 		HUDWidget->UpdateHp(CurrentHp);
+
+	if (CurrentHp <= 0)
+	{
+		SetDead();
+	}
 }
 
 void AIFCharacter::ApplyItem(UIFItemData* InItemData)
@@ -401,7 +414,7 @@ void AIFCharacter::ApplyItem(UIFItemData* InItemData)
 			ensure(HealItem);
 			CurrentHp = FMath::Clamp(CurrentHp + HealItem->IncreaseHealthRate, CurrentHp, MaxHp);
 			
-			UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+			UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 			if (::IsValid(HUDWidget))
 				HUDWidget->UpdateHp(CurrentHp);
 
@@ -533,7 +546,7 @@ void AIFCharacter::WeakAttack()
 			// check if enemy is in character's sight (DotProduct on chracter's forward vector and character to enemy vector)
 			float DotProduct = FVector::DotProduct(GetActorForwardVector(), (Enemy->GetActorLocation() - GetActorLocation()).GetSafeNormal());
 			
-			if (DotProduct > 0.4)
+			if (DotProduct > 0.8)
 			{
 				// set the closest Enemy to Target
 				Target = Cast<AIFEnemy>(Enemy);
@@ -660,10 +673,16 @@ void AIFCharacter::Execute()
 
 				const auto& ExecutionAssetData = ExecutionArray[RandNum];
 
-				// Set Axe to Character's Back
-				Sheathe();
-				AnimInstance->AnimState.RemoveTag(ANIM_AXEHOLDING);
-				AnimInstance->AnimState.RemoveTag(ANIM_DRAW);
+				// Set Axe to Character's Back if character was holding the axe
+				if (Axe->GetAttachParentActor() == this)
+				{
+					Sheathe();
+					AnimInstance->AnimState.RemoveTag(ANIM_AXEHOLDING);
+					AnimInstance->AnimState.RemoveTag(ANIM_DRAW);
+				}
+
+				CharacterState.Reset();
+				CharacterState.AddTag(IdleState);
 
 				// Set MotionWarping position and warp
 				Target->WarpPoint->SetRelativeLocation(ExecutionAssetData->WarpPoint);
@@ -705,6 +724,23 @@ void AIFCharacter::Interaction()
 		Stage->StartGame();
 }
 
+void AIFCharacter::StartMenu()
+{
+	PlayerController->OpenPauseMenu();
+}
+
+void AIFCharacter::SetDead()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	SetActorEnableCollision(false);
+	AnimInstance->PlayDeathMontage();
+	auto GameMode = Cast<AIFGameMode>(GetWorld()->GetAuthGameMode());
+	if (::IsValid(GameMode))
+	{
+		GameMode->OnGameOver.ExecuteIfBound();
+	}
+}
+
 void AIFCharacter::UpdateAimCamera(float NewArmLength)
 {
 	SpringArm->TargetArmLength = NewArmLength;
@@ -714,7 +750,7 @@ void AIFCharacter::Throw()
 {
 	if (!AnimInstance->IsAnyMontagePlaying())
 	{
-		UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+		UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 		if(::IsValid(HUDWidget))
 		{
 			HUDWidget->SetAxeIcon(false);
@@ -728,24 +764,26 @@ void AIFCharacter::Draw()
 {
 	FName WeaponSocket(TEXT("Weapon_R"));
 
-	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 	if(::IsValid(HUDWidget))
 		HUDWidget->SetAxeIcon(true);
 
 	Axe->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 	Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+	Axe->SetActorRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 }
 
 void AIFCharacter::Sheathe()
 {
 	FName BackSocket(TEXT("Weapon_Back"));
 	
-	UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+	UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 	if (::IsValid(HUDWidget))
 		HUDWidget->SetAxeIcon(false);
 
 	Axe->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 	Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, BackSocket);
+	Axe->SetActorRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 }
 
 void AIFCharacter::RotateToCamera()
@@ -791,7 +829,7 @@ void AIFCharacter::RecallAxe()
 		AnimInstance->SetCanDoNextAction(false);
 		Axe->Recall();
 
-		UIFHUDWidget* HUDWidget = Cast<UIFHUDWidget>(PlayerController->GetHUD());
+		UIFHUD* HUDWidget = Cast<UIFHUD>(PlayerController->GetHUD());
 		HUDWidget->SetRecallIcon(false);
 
 	}
@@ -805,9 +843,5 @@ void AIFCharacter::CatchAxe()
     AnimInstance->SetCanDoNextAction(true);
 	
 	Draw();
-
-    /*FName WeaponSocket(TEXT("Weapon_R"));
-    Axe->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
-	*/
 	SetCameraShake();
 }
