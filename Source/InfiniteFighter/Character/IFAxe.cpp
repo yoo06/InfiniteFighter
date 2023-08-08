@@ -89,7 +89,7 @@ AIFAxe::AIFAxe()
 		AxeRotateCurveFloat = AXE_ROTATE_CURVE.Object;
 
 	AxeRotateTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AXE_ROTATE_TIMELINE"));
-	AxeGravityTimeline->SetTimelineLength(1.0f);
+	AxeRotateTimeline->SetTimelineLength(1.0f);
 
 	static ConstructorHelpers::FObjectFinder<UCurveFloat>WIGGLE_CURVE
 	(TEXT("/Game/InFiniteFighter/Miscellaneous/Curve/WiggleCurve.WiggleCurve"));
@@ -188,13 +188,14 @@ void AIFAxe::PostInitializeComponents()
     OnReturnSpeedTimelineFunction.BindDynamic(this, &AIFAxe::UpdateReturnLocation);
     ReturnSpeedTimeline->AddInterpFloat(ReturnSpeedCurveFloat, OnReturnSpeedTimelineFunction);
 
-	// tilting when recall starts
-    OnReturnTiltEndTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltEnd);
-    ReturnTiltStartTimeline->AddInterpFloat(ReturnTiltEndCurveFloat, OnReturnTiltEndTimelineFunction);
 
-	// tilting when recall ends
+	// tilting when recall starts
 	OnReturnTiltStartTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltStart);
 	ReturnTiltEndTimeline->AddInterpFloat(ReturnTiltStartCurveFloat, OnReturnTiltStartTimelineFunction);
+
+	// tilting when recall ends
+    OnReturnTiltEndTimelineFunction.BindDynamic(this, &AIFAxe::UpdateTiltEnd);
+    ReturnTiltStartTimeline->AddInterpFloat(ReturnTiltEndCurveFloat, OnReturnTiltEndTimelineFunction);
 
 	// binds the axe to character
 	OnReturnTimelineFinished.BindDynamic(this, &AIFAxe::CatchAxe);
